@@ -1,3 +1,4 @@
+import os
 import json
 
 from torch.utils.data import Dataset, DataLoader
@@ -25,7 +26,7 @@ def bootstrap_dataset(
             model, tokenizer, prompt, batch, generation_config
         )
         # Add additional responses to existing examples
-        for (q, r, d), r_ in zip(batch, outputs):
+        for q, r, d, r_ in outputs:
             bootstrapped_examples.append({
                 "question" : q, "answer" : r, "evidence" : d, "generated" : r_
             })
@@ -76,7 +77,7 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
         }[dataset](data_path, **kwargs)
     
     @classmethod
-    def from_trivia_qa(cls, data_path, top_k=None):
+    def from_trivia_qa(cls, data_path, evidence_path=None, top_k=None):
         """
         Creates a ContextualizedQADataset for the TriviaQA dataset, using the path to the data provided.
         data_path should be a path to the json file containing the respective split for the TriviaQA dataset.
@@ -90,8 +91,11 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
         examples = []
         for x in data:
             question, answer = x["Question"], x["Answer"]["Value"]
-            evidence = sorted(x["SearchResults"], key=lambda y : y["Rank"])[:top_k]
-            evidence = [e["Description"] for e in evidence]
+            if evidence_path is not None:
+                # Retrieve necessary evidence documents
+                evidence = [os.path.join(evidence_path, e['Filename']) for e in x["EntityPages"]]
+            else:
+                evidence = None
 
             # Store (Q, R, D) triple
             examples.append({"question" : question, "answer" : answer, "evidence" : evidence})

@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument("--num-workers", type=int, default=8)
     # Generation arguments
     parser.add_argument("--temperature", type=float, default=0.7)
-    parser.add_argument("--repetition_penalty", type=float, default=1.0)
+    parser.add_argument("--repetition-penalty", type=float, default=1.0)
     parser.add_argument("--max-new-tokens", type=int, default=512)
     parser.add_argument("--num-beams", type=int, default=1)
     parser.add_argument("--num-return-sequences", type=int, default=1)
@@ -46,7 +46,9 @@ def parse_args():
         "--task",
         type=str,
         choices=["bootstrap-incorrect-response", "bootstrap-wrong-context", "finetune-critic"],
+    
     )
+    parser.add_argument("--evidence-path", type=str, default=None)
     parser.add_argument("--evidence-top-k", type=int, default=5, help="Number of documents to use for context.")
 
     # Dataset and save paths

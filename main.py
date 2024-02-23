@@ -1,3 +1,6 @@
+import os 
+import torch
+
 from FastChat.fastchat.model.model_adapter import load_model
 from transformers import GenerationConfig
 
@@ -27,25 +30,29 @@ if __name__ == "__main__":
         do_sample=args.do_sample
     )
     dataset_args = {
+        "evidence_path" : args.evidence_path,
         "top_k" : args.evidence_top_k
     }
 
     # Load task-specific prompt template
     prompt = get_prompt_from_task(task=args.task)
 
-    if args.task == BOOTSTRAP_INCORRECT_RESPONSE_TASK or args.task == BOOTSTRAP_WRONG_CONTEXT_TASK:
-        bootstrap_dataset(
-            prompt, 
-            dataset=args.dataset,
-            data_path=args.data_path,
-            dataset_args=dataset_args,
-            model=model, tokenizer=tokenizer,
-            generation_config=generation_config,
-            batch_size=args.batch_size, num_workers=args.num_workers,
-            save_path=args.save_path
+    if not os.path.exists(os.path.dirname(args.save_path)):
+        os.makedirs(os.path.dirname(args.save_path))
 
-        )
+    if args.task == BOOTSTRAP_INCORRECT_RESPONSE_TASK or args.task == BOOTSTRAP_WRONG_CONTEXT_TASK:
+        with torch.no_grad():
+            bootstrap_dataset(
+                prompt, 
+                dataset=args.dataset,
+                data_path=args.data_path,
+                dataset_args=dataset_args,
+                model=model, tokenizer=tokenizer,
+                generation_config=generation_config,
+                batch_size=args.batch_size, num_workers=args.num_workers,
+                save_path=args.save_path
+            )
     elif args.task == FINETUNE_CRITIC_TASK:
         pass
     else:
-        raise AssertionError, f"Task {args.task} invalid!"
+        raise AssertionError(f"Task {args.task} invalid!")
