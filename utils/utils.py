@@ -31,6 +31,8 @@ def parse_args():
         action="store_true",
         help="Only when using 8-bit quantization: Offload excess weights to the CPU that don't fit on the GPU",
     )
+    parser.add_argument("--num-gpus", type=int, default=1)
+    parser.add_argument("--max-gpu-memory", type=str, default=None)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--num-workers", type=int, default=8)
     # Generation arguments

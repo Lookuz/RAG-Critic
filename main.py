@@ -16,6 +16,8 @@ if __name__ == "__main__":
     model, tokenizer = load_model(
         model_path=args.model_path,
         device=args.device, 
+        num_gpus=args.num_gpus,
+        max_gpu_memory=args.max_gpu_memory,
         load_8bit=args.load_8bit,
         cpu_offloading=args.cpu_offloading
     )

@@ -40,8 +40,8 @@ def bootstrap_dataset(
 class ContextualizedQADataLoaderForBootstrapping(DataLoader):
     def __init__(self, 
         dataset: Dataset, 
-        batch_size: int | None = 1, 
-        shuffle: bool | None = None, 
+        batch_size: int = 1, 
+        shuffle: bool = False, 
         num_workers: int = 0):
         
         super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=ContextualizedQADataLoaderForBootstrapping.collate_fn)

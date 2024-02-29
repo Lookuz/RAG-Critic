@@ -9,6 +9,6 @@ INCORRECT_RESPONSE_INSTRUCTION = "You are now a hallucination generator. Please 
 INCORRECT_RESPONSE_TEMPLATE = "{}\n\n### CONTEXT\n{}\n\n### QUESTION:\n{}\n\n### CORRECT RESPONSE:\n{}\n\n### INCORRECT RESPONSE:\n"
 INCORRECT_RESPONSE_DELIMITER = "### INCORRECT RESPONSE:\n"
 
-SUMMARIZE_CONTEXT_INSTRUCTION = "Summarize the following document concisely into three sentences."
+SUMMARIZE_CONTEXT_INSTRUCTION = "Summarize the following document concisely in under four sentences."
 SUMMARIZE_CONTEXT_TEMPLATE = "{}\n{}\n\n### SUMMARY:\n"
-SUMMARIZE_CONTEXt_DELIMITER = "### SUMMARY:"
+SUMMARIZE_CONTEXT_DELIMITER = "### SUMMARY:"
