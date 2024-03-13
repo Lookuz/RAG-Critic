@@ -3,8 +3,15 @@ import json
 
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+from transformers import pipeline
+from langchain.schema.document import Document
+from langchain.prompts import PromptTemplate
+from langchain.chains.summarize import load_summarize_chain
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
-from utils.prompt import TaskPrompt, generate_responses
+from utils.prompt import TaskPrompt, generate_responses, summarize_document
+from utils.const import *
 
 def bootstrap_dataset(
     prompt : TaskPrompt, 
@@ -13,15 +20,49 @@ def bootstrap_dataset(
     generation_config,
     batch_size,
     save_path,
-    num_workers=1
+    num_workers=1,
+    save_every=1,
 ):
     # Build dataset from original examples
     dataset = ContextualizedQADatasetForBootstrapping.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
     dataloader = ContextualizedQADataLoaderForBootstrapping(dataset, batch_size=batch_size, num_workers=num_workers)
 
+    # Check for existing generated examples
+    if os.path.exists(save_path):
+        with open(save_path, "r") as f:
+            bootstrapped_examples = json.load(f)
+        num_generated = len(bootstrapped_examples)
+    else:
+        bootstrapped_examples, num_generated = [], 0
+
+    # Initialize summarizer from LangChain
+    llm = HuggingFacePipeline(pipeline=pipeline(
+        "text-generation",
+        model=model, tokenizer=tokenizer,
+        max_new_tokens=2048,
+        temperature=generation_config.temperature,
+        top_p=generation_config.top_p,
+        repetition_penalty=generation_config.repetition_penalty,
+        do_sample=generation_config.do_sample
+    ))
+    summarize_chain = load_summarize_chain(
+        llm=llm, chain_type="map_reduce",
+        map_prompt=PromptTemplate(template=SUMMARIZE_CONTEXT_INSTRUCTION_LANGCHAIN, input_variables=["text"]), # Prompt for summarizing a single chunk,
+        combine_prompt=PromptTemplate(template=SUMMARIZE_REDUCE_INSTRUCTION_LANGCHAIN, input_variables=["text"]), # Prompt for reducing all summaries to a single summary
+        token_max=1024
+    )
+
     # Generate additional examples
-    bootstrapped_examples = []
-    for batch in tqdm(dataloader):
+    for i, batch in enumerate(tqdm(dataloader)):
+        if i < num_generated:
+            continue
+
+        # Summarize documents
+        batch = [(question, answer, '\n'.join(
+            summarize_document(summarizer=summarize_chain, documents=evidence)
+        )) for question, answer, evidence in batch]
+
+        # Generate responses using summarized evidence
         outputs = generate_responses(
             model, tokenizer, prompt, batch, generation_config
         )
@@ -31,9 +72,10 @@ def bootstrap_dataset(
                 "question" : q, "answer" : r, "evidence" : d, "generated" : r_
             })
 
-    # Save additional examples to new data files
-    with open(save_path, "w") as f:
-        json.dump(bootstrapped_examples, f, indent=4)
+        if (i + 1) % save_every == 0:
+            # Save additional examples to new data files
+            with open(save_path, "w") as f:
+                json.dump(bootstrapped_examples, f, indent=4)
 
     return bootstrapped_examples
 
@@ -77,7 +119,7 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
         }[dataset](data_path, **kwargs)
     
     @classmethod
-    def from_trivia_qa(cls, data_path, evidence_path=None, top_k=None):
+    def from_trivia_qa(cls, data_path, evidence_path=None, top_k=1):
         """
         Creates a ContextualizedQADataset for the TriviaQA dataset, using the path to the data provided.
         data_path should be a path to the json file containing the respective split for the TriviaQA dataset.
@@ -94,6 +136,7 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
             if evidence_path is not None:
                 # Retrieve necessary evidence documents
                 evidence = [os.path.join(evidence_path, e['Filename']) for e in x["EntityPages"]]
+                evidence = evidence[:top_k] if top_k is not None else evidence
             else:
                 evidence = None
 

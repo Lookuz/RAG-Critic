@@ -1,19 +1,19 @@
 # Compute parameters
-device="mps"
-batch_size=1
-num_workers=4
-max_gpu_memory="8GiB"
+device="cuda"
+batch_size=4
+num_workers=8
+# max_gpu_memory="8GiB"
 num_gpus=1
 
 # Dataset parameters
 dataset="triviaqa"
 data_path="datasets/TriviaQA/rc/qa/wikipedia-train.json"
 save_path="datasets/TriviaQA/rc/qa/bootstrap/web-train-incorrect-response.json"
-evidence_path="atasets/TriviaQA/rc/evidence/wikipedia"
+evidence_path="datasets/TriviaQA/rc/evidence/wikipedia"
 evidence_top_k=3
 
 # Generation parameters
-temperature=0.7
+temperature=0.
 repetition_penalty=1
 max_new_tokens=512
 num_beams=1
@@ -22,7 +22,6 @@ num_return_sequences=1
 CUDA_VISIBLE_DEVICES=0 python main.py \
     --task "bootstrap-incorrect-response" \
     --num-gpus $num_gpus \
-    --max-gpu-memory $max_gpu_memory \
     --device $device \
     --dataset $dataset \
     --data-path $data_path \

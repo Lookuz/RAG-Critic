@@ -40,6 +40,10 @@ python -m pip install transformers=4.37.2
 cd FastChat
 python -m pip install -e ".[model_worker,webui]"
 ```
+4. Install LangChain and related dependencies
+```
+python -m pip install --upgrade --quiet  langchain-openai tiktoken chromadb langchain
+```
 
 ## Downloading the datasets
 The primary dataset used in the repository is TriviaQA, which can be downloaded from the following link: https://nlp.cs.washington.edu/triviaqa/. Make sure to place the downloaded files for both RC and unfiltered under `datasets/TriviaQA/rc/` and `datasets/TriviaQA/unfiltered/` respectively.

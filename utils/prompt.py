@@ -1,4 +1,6 @@
 from transformers import GenerationConfig
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 
 from utils.const import *
 from utils.utils import extract_responses
@@ -36,41 +38,37 @@ def construct_prompt_for_incorrect_response(question, context, response):
     """
     return INCORRECT_RESPONSE_TEMPLATE.format(INCORRECT_RESPONSE_INSTRUCTION, question, context, response)
 
-def construct_prompt_for_summarization(evidence):
+def construct_prompt_for_summarization(evidence=None):
     """
-    Constructs the prompt for asking a model to summarize a piece of document
+    Constructs the prompt for asking a model to summarize a piece of document or chunk
     """
-    return SUMMARIZE_CONTEXT_TEMPLATE.format(SUMMARIZE_CONTEXT_INSTRUCTION, evidence)
+    prompt = SUMMARIZE_CONTEXT_TEMPLATE.format(SUMMARIZE_CONTEXT_INSTRUCTION, evidence) if evidence is not None else SUMMARIZE_CONTEXT_TEMPLATE.format(SUMMARIZE_CONTEXT_INSTRUCTION)
+
+    return prompt
+
+def summarize_document(summarizer, documents):
+    # Load each evidence document
+    summaries = []
+    for doc in documents:
+        with open(doc, "r") as f:
+            evidence = f.read()
+    
+        # Use LangChain text splitter to chunk the text
+        text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n"], chunk_size=8000, chunk_overlap=500)
+        evidence = text_splitter.create_documents([evidence])
+
+        # Prompt model for summarization
+        summary = summarizer.invoke(evidence)['output_text']
+        summaries.append(summary)
+
+    return summaries
 
 def generate_responses(
         model, tokenizer, 
-        prompt : TaskPrompt, inputs : tuple, 
+        prompt : TaskPrompt, inputs, 
         generation_config : GenerationConfig
     ):
-    # Summarize input documents
-    summarized = []
-    for q, r, d in inputs:
-        # Load each documents
-        evidence = []
-        for doc in d:
-            with open(doc, "r") as f:
-                evidence.append(f.read())
-
-        # Construct prompt for summarization
-        evidence_prompts = [construct_prompt_for_summarization(e) for e in evidence]
-
-        # Prompt model for summarization
-        summaries = []
-        for evidence in evidence_prompts:
-            inputs = tokenizer(evidence, padding="longest", add_special_tokens=True, return_tensors="pt")
-            input_ids, attention_mask = inputs["input_ids"].to(model.device), inputs["attention_mask"].to(model.device)
-            outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
-            summaries.append(tokenizer.batch_decode(outputs, skip_special_tokens=True))
-
-        summarized.append(q, r, summaries)
-
-    # Format input data using the prompt template
-    inputs = [(question, answer, '\n'.join(evidence)) for question, answer, evidence in summarized]
+    # Construct prompt
     inputs = [
         prompt.construct(question, evidence, answer) for question, answer, evidence in inputs
     ]
@@ -81,6 +79,6 @@ def generate_responses(
 
     outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
     outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-    outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(summarized, extract_responses(outputs, prompt.delimiter))]
+    outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
 
     return outputs
