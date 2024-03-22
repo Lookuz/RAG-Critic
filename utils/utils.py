@@ -1,4 +1,6 @@
 import argparse
+import itertools
+import random
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -66,3 +68,8 @@ def parse_args():
 
 def extract_responses(outputs, delimiter):
     return [x.split(delimiter)[1].strip() for x in outputs]
+
+def get_derangement(sequence):
+    valid_permutations = set([s for s in itertools.permutations(sequence) if not any([a == b for a, b in zip(s, sequence)])])
+
+    return random.choice(list(valid_permutations))

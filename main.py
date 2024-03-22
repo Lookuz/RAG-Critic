@@ -42,17 +42,17 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.dirname(args.save_path)):
         os.makedirs(os.path.dirname(args.save_path))
 
-    if args.task == BOOTSTRAP_INCORRECT_RESPONSE_TASK or args.task == BOOTSTRAP_WRONG_CONTEXT_TASK:
+    if args.task == BOOTSTRAP_INCORRECT_RESPONSE_TASK or args.task == BOOTSTRAP_EVALUATION_GENERATION_TASK:
         with torch.no_grad():
             bootstrap_dataset(
-                prompt, 
+                args.task, prompt, 
                 dataset=args.dataset,
                 data_path=args.data_path,
                 dataset_args=dataset_args,
                 model=model, tokenizer=tokenizer,
                 generation_config=generation_config,
                 batch_size=args.batch_size, num_workers=args.num_workers,
-                save_path=args.save_path
+                save_path=args.save_path,
             )
     elif args.task == FINETUNE_CRITIC_TASK:
         pass

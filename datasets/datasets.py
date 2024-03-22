@@ -1,5 +1,6 @@
 import os
 import json
+from typing import Union
 
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
@@ -12,8 +13,35 @@ from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
 from utils.prompt import TaskPrompt, generate_responses, summarize_document
 from utils.const import *
+from utils.utils import get_derangement
 
 def bootstrap_dataset(
+    task,
+    prompt : TaskPrompt, 
+    dataset, data_path, dataset_args : dict,
+    model, tokenizer,
+    generation_config,
+    batch_size,
+    save_path,
+    num_workers=1,
+    save_every=1
+):
+    if task == BOOTSTRAP_INCORRECT_RESPONSE_TASK:
+        bootstrap_incorrect_responses(
+            prompt, dataset, data_path, dataset_args,
+            model, tokenizer, generation_config, batch_size,
+            save_path, num_workers, save_every
+        )
+    elif task == BOOTSTRAP_EVALUATION_GENERATION_TASK:
+        bootstrap_evaluation_generation(
+            prompt, dataset, data_path, dataset_args,
+            model, tokenizer, generation_config, batch_size,
+            save_path, num_workers, save_every
+        )
+    else:
+        raise AssertionError("Provided task is not valid!")
+
+def bootstrap_incorrect_responses(
     prompt : TaskPrompt, 
     dataset, data_path, dataset_args : dict,
     model, tokenizer,
@@ -25,7 +53,7 @@ def bootstrap_dataset(
 ):
     # Build dataset from original examples
     dataset = ContextualizedQADatasetForBootstrapping.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
-    dataloader = ContextualizedQADataLoaderForBootstrapping(dataset, batch_size=batch_size, num_workers=num_workers)
+    dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
 
     # Check for existing generated examples
     if os.path.exists(save_path):
@@ -79,14 +107,80 @@ def bootstrap_dataset(
 
     return bootstrapped_examples
 
-class ContextualizedQADataLoaderForBootstrapping(DataLoader):
+def bootstrap_evaluation_generation(
+    prompt : dict[TaskPrompt], 
+    dataset, data_path, dataset_args : dict,
+    model, tokenizer,
+    generation_config,
+    batch_size,
+    save_path,
+    num_workers=1,
+    save_every=1
+):
+    # Build dataset from original examples
+    dataset = ContextualizedQADatasetForEvaluationGeneration.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
+    dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+
+    # Check for existing generated examples
+    if os.path.exists(save_path):
+        with open(save_path, "r") as f:
+            bootstrapped_examples = json.load(f)
+        num_generated = len(bootstrapped_examples)
+    else:
+        bootstrapped_examples, num_generated = [], 0
+
+    # Generate additional examples
+    bootstrapped_examples = []
+    for i, batch in enumerate(tqdm(dataloader)):
+        if i < num_generated:
+            continue
+
+        # Generate evaluation under correct context for correct responses
+        inputs_correct_context = [(q, r, d) for q, r, d, _ in batch]
+        outputs = generate_responses(
+            model, tokenizer, prompt[EVALUATION_GENERATION_CORRECT_CASE], inputs_correct_context, generation_config
+        )
+        for (q, r, d), e in zip(inputs_correct_context, outputs):
+            bootstrapped_examples.append({
+                "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
+            })
+
+        # Generate evaluation under correct context for wrong responses
+        inputs_incorrect_response = [(q, r_, d) for q, _, d, r_ in batch]
+        outputs = generate_responses(
+            model, tokenizer, prompt[EVALUATION_GENERATION_WRONG_RESPONSE_CASE], inputs_incorrect_response, generation_config
+        )
+        for (q, r, d), e in zip(inputs_incorrect_response, outputs):
+            bootstrapped_examples.append({
+                "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
+            })
+        
+        # Generate evaluation under wrong context
+        evidence_idx = get_derangement(list(range(len(batch))))
+        # Randomly select evidence from other examples within batch
+        inputs_incorrect_context = [(q, r, batch[i][2]) for i, (q, r, _, _) in zip(evidence_idx, batch)]
+        outputs = generate_responses(
+            model, tokenizer, prompt[EVALUATION_GENERATION_WRONG_CONTEXT_CASE], inputs_incorrect_context, generation_config
+        )
+        for (q, r, d), e in zip(inputs_incorrect_context, outputs):
+            bootstrapped_examples.append({
+                "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
+            })
+
+        if (i + 1) % save_every == 0:
+            # Save additional examples to new data files
+            with open(save_path, "w") as f:
+                json.dump(bootstrapped_examples, f, indent=4)
+
+
+class ContextualizedQADataLoader(DataLoader):
     def __init__(self, 
         dataset: Dataset, 
         batch_size: int = 1, 
         shuffle: bool = False, 
         num_workers: int = 0):
         
-        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=ContextualizedQADataLoaderForBootstrapping.collate_fn)
+        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=ContextualizedQADataLoader.collate_fn)
     
     @classmethod
     def collate_fn(cls, batch):
@@ -121,7 +215,7 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
     @classmethod
     def from_trivia_qa(cls, data_path, evidence_path=None, top_k=1):
         """
-        Creates a ContextualizedQADataset for the TriviaQA dataset, using the path to the data provided.
+        Creates a ContextualizedQADatasetForBootstrapping for the TriviaQA dataset, using the path to the data provided.
         data_path should be a path to the json file containing the respective split for the TriviaQA dataset.
         """
         # NOTE (Wey Yeh): Currently adapted for web-<split>.json files. The wikipedia-<split>.json files adapt a different format,
@@ -145,3 +239,38 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
 
         return cls(data=examples)
 
+class ContextualizedQADatasetForEvaluationGeneration(Dataset):
+    """
+    Dataset for text in the form of [Q, R, D, R'] triples, containing the question, response, context and generated false responses respectively.
+    Format of data: Each entry should be in the form {"question" : ..., "answer" : ..., "evidence : ..., "generated" : ...}
+    """
+    def __init__(
+        self, data
+    ) -> None:
+        super().__init__()
+
+        self.data = data  
+
+    def __getitem__(self, index):
+        return (self.data[index]["question"], self.data[index]["answer"], self.data[index]["evidence"], self.data[index]["generated"])
+    
+    def __len__(self):
+        return len(self.data)
+    
+    @classmethod
+    def from_trivia_qa(cls, data_path):
+        """
+        Creates a ContextualizedQADatasetForEvaluationGeneration for the TriviaQA dataset, using the path to the data provided.
+        data_path should be a path to the json file containing the respective split for the TriviaQA dataset.
+        """
+        # NOTE (Wey Yeh): Currently adapted for web-<split>.json files. The wikipedia-<split>.json files adapt a different format,
+        # Where the "SearchResult" key storing the evidence is not present? It seems like extra effort is required to
+        # extract these evidence, so I ignored it for now
+        with open(data_path, "r") as f:
+            data = json.load(f)["Data"]
+
+        examples = [
+            (x["question"], x["answer"], x["evidence"], x["generated"]) for x in data
+        ]
+        
+        return cls(data=examples)

@@ -24,8 +24,25 @@ def get_prompt_from_task(task):
             INCORRECT_RESPONSE_INSTRUCTION,
             INCORRECT_RESPONSE_TEMPLATE,
             INCORRECT_RESPONSE_DELIMITER
-        )
-        # TODO: Wrong context task
+        ),
+        # Wrong context task
+        BOOTSTRAP_EVALUATION_GENERATION_TASK : {
+            EVALUATION_GENERATION_CORRECT_CASE : TaskPrompt(
+                EVALUATION_GENERATION_INSTRUCTION.format(EVALUATION_GENERATION_CORRECT_FILLER),
+                EVALUATION_GENERATION_TEMPLATE,
+                EVALUATION_GENERATION_DELIMITER
+            ),
+            EVALUATION_GENERATION_WRONG_RESPONSE_CASE : TaskPrompt(
+                EVALUATION_GENERATION_INSTRUCTION.format(EVALUATION_GENERATION_WRONG_CONTEXT_FILLER),
+                EVALUATION_GENERATION_TEMPLATE,
+                EVALUATION_GENERATION_DELIMITER
+            ),
+            EVALUATION_GENERATION_WRONG_CONTEXT_CASE : TaskPrompt(
+                EVALUATION_GENERATION_INSTRUCTION.format(EVALUATION_GENERATION_WRONG_RESPONSE_FILLER),
+                EVALUATION_GENERATION_TEMPLATE,
+                EVALUATION_GENERATION_DELIMITER
+            ),
+        }
         # TODO: Finetune critic task
     }
 
@@ -68,17 +85,24 @@ def generate_responses(
         prompt : TaskPrompt, inputs, 
         generation_config : GenerationConfig
     ):
-    # Construct prompt
-    inputs = [
-        prompt.construct(question, evidence, answer) for question, answer, evidence in inputs
-    ]
+    assert (inputs is not None and len(inputs) > 0)
+    # (Q, R, D) case for bootstrapping or evaluation generation
+    if len(inputs[0]) > 2:
+        # Construct prompt
+        inputs = [
+            prompt.construct(question, evidence, answer) for question, answer, evidence in inputs
+        ]
 
-    # Tokenize inputs
-    inputs = tokenizer(inputs, padding="longest", add_special_tokens=True, return_tensors="pt")
-    input_ids, attention_mask = inputs["input_ids"].to(model.device), inputs["attention_mask"].to(model.device)
+        # Tokenize inputs
+        inputs = tokenizer(inputs, padding="longest", add_special_tokens=True, return_tensors="pt")
+        input_ids, attention_mask = inputs["input_ids"].to(model.device), inputs["attention_mask"].to(model.device)
 
-    outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
-    outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-    outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
+        outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
+        outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+        outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
+    
+    # (Q, D) case, for RAG output generation by the target generative model
+    else:
+        pass
 
     return outputs
