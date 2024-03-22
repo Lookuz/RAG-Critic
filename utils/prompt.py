@@ -4,6 +4,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from utils.const import *
 from utils.utils import extract_responses
+from utils.latent_semantic_analysis import truncate_text
 
 class TaskPrompt:
     """
@@ -36,7 +37,7 @@ def construct_prompt_for_incorrect_response(question, context, response):
     Constructs the prompt to the model to generate a false response, under the provided question and context,
     as well as the correct response
     """
-    return INCORRECT_RESPONSE_TEMPLATE.format(INCORRECT_RESPONSE_INSTRUCTION, question, context, response)
+    return INCORRECT_RESPONSE_TEMPLATE.format(INCORRECT_RESPONSE_INSTRUCTION, context, question, response)
 
 def construct_prompt_for_summarization(evidence=None):
     """
@@ -46,39 +47,47 @@ def construct_prompt_for_summarization(evidence=None):
 
     return prompt
 
-def summarize_document(summarizer, documents):
+def summarize_document(summarizer, documents, tokenizer, ideal_number_tokens):
     # Load each evidence document
     summaries = []
     for doc in documents:
         with open(doc, "r") as f:
             evidence = f.read()
     
+        shortened_evidence = truncate_text(text=evidence, llm_max_tokens=ideal_number_tokens, hf_tokenizer=tokenizer)
         # Use LangChain text splitter to chunk the text
-        text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n"], chunk_size=8000, chunk_overlap=500)
-        evidence = text_splitter.create_documents([evidence])
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=8000, chunk_overlap=100)
+        chunked_shortened_evidence = text_splitter.create_documents([shortened_evidence])
 
         # Prompt model for summarization
-        summary = summarizer.invoke(evidence)['output_text']
+        summary = summarizer.invoke(chunked_shortened_evidence)['output_text']
+        print(f"Summary: {summary}")
         summaries.append(summary)
 
     return summaries
+
 
 def generate_responses(
         model, tokenizer, 
         prompt : TaskPrompt, inputs, 
         generation_config : GenerationConfig
     ):
+
+    # inputs Q,A,E (E is converted into a string by ''.join(list))
     # Construct prompt
-    inputs = [
+    inputs_prompt = [
         prompt.construct(question, evidence, answer) for question, answer, evidence in inputs
     ]
 
     # Tokenize inputs
-    inputs = tokenizer(inputs, padding="longest", add_special_tokens=True, return_tensors="pt")
-    input_ids, attention_mask = inputs["input_ids"].to(model.device), inputs["attention_mask"].to(model.device)
+    inputs_tokenized = tokenizer(inputs_prompt, padding="longest", add_special_tokens=True, return_tensors="pt")
+    input_ids, attention_mask = inputs_tokenized["input_ids"].to(model.device), inputs_tokenized["attention_mask"].to(model.device)
 
     outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
     outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+
+    print(f"inputs: {inputs}")
+    # inputs = [(question, answer, evidence) for question, answer, evidence in inputs]
     outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
 
     return outputs

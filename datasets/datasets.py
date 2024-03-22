@@ -15,6 +15,7 @@ from utils.const import *
 
 def bootstrap_dataset(
     prompt : TaskPrompt, 
+    ideal_number_tokens,
     dataset, data_path, dataset_args : dict,
     model, tokenizer,
     generation_config,
@@ -26,7 +27,7 @@ def bootstrap_dataset(
     # Build dataset from original examples
     dataset = ContextualizedQADatasetForBootstrapping.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
     dataloader = ContextualizedQADataLoaderForBootstrapping(dataset, batch_size=batch_size, num_workers=num_workers)
-
+    print("Batch size: ", batch_size)
     # Check for existing generated examples
     if os.path.exists(save_path):
         with open(save_path, "r") as f:
@@ -39,11 +40,12 @@ def bootstrap_dataset(
     llm = HuggingFacePipeline(pipeline=pipeline(
         "text-generation",
         model=model, tokenizer=tokenizer,
+        device_map="auto",
         max_new_tokens=2048,
-        temperature=generation_config.temperature,
-        top_p=generation_config.top_p,
+        num_beams = 1,
+        num_return_sequences=1,
         repetition_penalty=generation_config.repetition_penalty,
-        do_sample=generation_config.do_sample
+        do_sample=False
     ))
     summarize_chain = load_summarize_chain(
         llm=llm, chain_type="map_reduce",
@@ -59,19 +61,23 @@ def bootstrap_dataset(
 
         # Summarize documents
         batch = [(question, answer, '\n'.join(
-            summarize_document(summarizer=summarize_chain, documents=evidence)
+            summarize_document(summarizer=summarize_chain, documents=evidence, tokenizer=tokenizer, ideal_number_tokens=ideal_number_tokens)
         )) for question, answer, evidence in batch]
+        
+        print(f"batch: {batch}")
 
         # Generate responses using summarized evidence
         outputs = generate_responses(
             model, tokenizer, prompt, batch, generation_config
         )
+        print("outputs ", outputs)
         # Add additional responses to existing examples
         for q, r, d, r_ in outputs:
             bootstrapped_examples.append({
                 "question" : q, "answer" : r, "evidence" : d, "generated" : r_
             })
 
+        print("Saving...")
         if (i + 1) % save_every == 0:
             # Save additional examples to new data files
             with open(save_path, "w") as f:

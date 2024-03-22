@@ -61,6 +61,7 @@ def parse_args():
     )
     parser.add_argument("--data-path", type=str, required=True)
     parser.add_argument("--save-path", type=str, required=True)
+    parser.add_argument("--ideal-number-tokens", type=int, required=True)
 
     return parser.parse_args()
 
