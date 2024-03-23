@@ -1,5 +1,6 @@
 import argparse
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     # Model arguments
@@ -48,7 +49,7 @@ def parse_args():
         "--task",
         type=str,
         choices=["bootstrap-incorrect-response", "bootstrap-wrong-context", "finetune-critic"],
-    
+
     )
     parser.add_argument("--evidence-path", type=str, default=None)
     parser.add_argument("--evidence-top-k", type=int, default=5, help="Number of documents to use for context.")
@@ -64,6 +65,7 @@ def parse_args():
     parser.add_argument("--ideal-number-tokens", type=int, required=True)
 
     return parser.parse_args()
+
 
 def extract_responses(outputs, delimiter):
     return [x.split(delimiter)[1].strip() for x in outputs]
