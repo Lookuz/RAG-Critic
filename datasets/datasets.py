@@ -3,20 +3,15 @@ import json
 
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import pipeline
-from langchain.schema.document import Document
-from langchain.prompts import PromptTemplate
-from langchain.chains.summarize import load_summarize_chain
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
-from utils.prompt import TaskPrompt, generate_responses, summarize_document
-from utils.const import *
+from utils.incorrect_response_gen import TaskPrompt, generate_incorrect_responses
+from utils import const
+
 
 def bootstrap_dataset(
-    prompt : TaskPrompt, 
-    ideal_number_tokens,
-    dataset, data_path, dataset_args : dict,
+    prompt: TaskPrompt,
+    dataset, data_path,
+    dataset_args: dict,
     model, tokenizer,
     generation_config,
     batch_size,
@@ -25,9 +20,11 @@ def bootstrap_dataset(
     save_every=1,
 ):
     # Build dataset from original examples
-    dataset = ContextualizedQADatasetForBootstrapping.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
-    dataloader = ContextualizedQADataLoaderForBootstrapping(dataset, batch_size=batch_size, num_workers=num_workers)
-    print("Batch size: ", batch_size)
+    dataset = ContextualizedQADatasetForBootstrapping.from_dataset(
+        dataset=dataset, data_path=data_path, **dataset_args)
+    dataloader = ContextualizedQADataLoaderForBootstrapping(
+        dataset, batch_size=batch_size, num_workers=num_workers)
+
     # Check for existing generated examples
     if os.path.exists(save_path):
         with open(save_path, "r") as f:
@@ -36,64 +33,43 @@ def bootstrap_dataset(
     else:
         bootstrapped_examples, num_generated = [], 0
 
-    # Initialize summarizer from LangChain
-    llm = HuggingFacePipeline(pipeline=pipeline(
-        "text-generation",
-        model=model, tokenizer=tokenizer,
-        device_map="auto",
-        max_new_tokens=2048,
-        num_beams = 1,
-        num_return_sequences=1,
-        repetition_penalty=generation_config.repetition_penalty,
-        do_sample=False
-    ))
-    summarize_chain = load_summarize_chain(
-        llm=llm, chain_type="map_reduce",
-        map_prompt=PromptTemplate(template=SUMMARIZE_CONTEXT_INSTRUCTION_LANGCHAIN, input_variables=["text"]), # Prompt for summarizing a single chunk,
-        combine_prompt=PromptTemplate(template=SUMMARIZE_REDUCE_INSTRUCTION_LANGCHAIN, input_variables=["text"]), # Prompt for reducing all summaries to a single summary
-        token_max=1024
-    )
-
     # Generate additional examples
     for i, batch in enumerate(tqdm(dataloader)):
         if i < num_generated:
             continue
+        if prompt.task == const.BOOTSTRAP_INCORRECT_RESPONSE_TASK:
+            # Get rid of the context
+            evidences = [x[-1] for x in batch]
+            batch = [x[:-1] for x in batch]
+            # Generate responses only based on question and correct answer
+            outputs = generate_incorrect_responses(
+                model, tokenizer, prompt, batch, generation_config
+            )
 
-        # Summarize documents
-        batch = [(question, answer, '\n'.join(
-            summarize_document(summarizer=summarize_chain, documents=evidence, tokenizer=tokenizer, ideal_number_tokens=ideal_number_tokens)
-        )) for question, answer, evidence in batch]
-        
-        print(f"batch: {batch}")
+            # Add additional responses to existing examples
+            for ((q, r,), r_, d) in zip(batch, outputs, evidences):
+                bootstrapped_examples.append({
+                    "question": q, "answer": r, "evidence": d, "generated": r_
+                })
 
-        # Generate responses using summarized evidence
-        outputs = generate_responses(
-            model, tokenizer, prompt, batch, generation_config
-        )
-        print("outputs ", outputs)
-        # Add additional responses to existing examples
-        for q, r, d, r_ in outputs:
-            bootstrapped_examples.append({
-                "question" : q, "answer" : r, "evidence" : d, "generated" : r_
-            })
-
-        print("Saving...")
-        if (i + 1) % save_every == 0:
-            # Save additional examples to new data files
-            with open(save_path, "w") as f:
-                json.dump(bootstrapped_examples, f, indent=4)
+            if (i + 1) % save_every == 0:
+                # Save additional examples to new data files
+                with open(save_path, "w") as f:
+                    json.dump(bootstrapped_examples, f, indent=4)
 
     return bootstrapped_examples
 
+
 class ContextualizedQADataLoaderForBootstrapping(DataLoader):
-    def __init__(self, 
-        dataset: Dataset, 
-        batch_size: int = 1, 
-        shuffle: bool = False, 
-        num_workers: int = 0):
-        
-        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=ContextualizedQADataLoaderForBootstrapping.collate_fn)
-    
+    def __init__(self,
+                 dataset: Dataset,
+                 batch_size: int = 1,
+                 shuffle: bool = False,
+                 num_workers: int = 0):
+
+        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers,
+                         collate_fn=ContextualizedQADataLoaderForBootstrapping.collate_fn)
+
     @classmethod
     def collate_fn(cls, batch):
         return batch
@@ -104,6 +80,7 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
     Dataset for text in the form of [Q, R, D] triples, containing the question, response and context respectively.
     Format of data: Each entry should be in the form {"question" : ..., "answer" : ..., "evidence : ...}
     """
+
     def __init__(
         self, data
     ) -> None:
@@ -113,17 +90,17 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
 
     def __getitem__(self, index):
         return (self.data[index]["question"], self.data[index]["answer"], self.data[index]["evidence"])
-    
+
     def __len__(self):
         return len(self.data)
-    
+
     @classmethod
     def from_dataset(cls, dataset, data_path, **kwargs):
         return {
-            "triviaqa" : cls.from_trivia_qa
+            "triviaqa": cls.from_trivia_qa
             # TODO: Other datasets, if needed
         }[dataset](data_path, **kwargs)
-    
+
     @classmethod
     def from_trivia_qa(cls, data_path, evidence_path=None, top_k=1):
         """
@@ -141,13 +118,14 @@ class ContextualizedQADatasetForBootstrapping(Dataset):
             question, answer = x["Question"], x["Answer"]["Value"]
             if evidence_path is not None:
                 # Retrieve necessary evidence documents
-                evidence = [os.path.join(evidence_path, e['Filename']) for e in x["EntityPages"]]
+                evidence = [os.path.join(evidence_path, e['Filename'])
+                            for e in x["EntityPages"]]
                 evidence = evidence[:top_k] if top_k is not None else evidence
             else:
                 evidence = None
 
             # Store (Q, R, D) triple
-            examples.append({"question" : question, "answer" : answer, "evidence" : evidence})
+            examples.append(
+                {"question": question, "answer": answer, "evidence": evidence})
 
         return cls(data=examples)
-
