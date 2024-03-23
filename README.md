@@ -1,6 +1,6 @@
 # RAG-Critic: A Critic-based Framework for Correcting Hallucinations
 
-This repository contains the code for RAG-Critic as part of the CS5260 Deep Learning and Neural Networks 2 module in NUS. The codebase is directly adapted from FastChat, and is structure as follows:
+This repository contains the code for RAG-Critic as part of the CS5260 Deep Learning and Neural Networks 2 module in NUS. The codebase is directly adapted from FastChat, and is structured as follows:
 
 ```
 RAG-Critic
@@ -35,7 +35,7 @@ python -m pip install --upgrade pip # Ensure updated to pip 24.0
 2. Install the `transformers` package:
 
 ```
-python -m pip install transformers=4.37.2
+python -m pip install transformers==4.37.2
 ```
 
 **NOTE**: `transformers=4.38.1` seems have some class name inconsistencies, suggest to avoid using this version.
