@@ -9,7 +9,7 @@ dataset="triviaqa"
 data_path="datasets/TriviaQA/rc/qa/bootstrap/web-train-incorrect-response.json"
 save_path="datasets/TriviaQA/rc/qa/bootstrap/web-train-evaluation-generation.json"
 evidence_path="datasets/TriviaQA/rc/evidence/wikipedia"
-evidence_top_k=1
+evidence_top_k=3
 
 # Generation parameters
 temperature=0.
@@ -19,7 +19,7 @@ num_beams=1
 num_return_sequences=1
 
 CUDA_VISIBLE_DEVICES=0 python main.py \
-    --task "bootstrap-incorrect-response" \
+    --task "bootstrap-evaluation-generation" \
     --num-gpus $num_gpus \
     --device $device \
     --dataset $dataset \
