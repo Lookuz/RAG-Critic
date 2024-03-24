@@ -14,30 +14,19 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Load model and tokenizer
-    # model, tokenizer = load_model(
-    #     model_path=args.model_path,
-    #     device=args.device, 
-    #     num_gpus=args.num_gpus,
-    #     max_gpu_memory=args.max_gpu_memory,
-    #     load_8bit=args.load_8bit,
-    #     cpu_offloading=args.cpu_offloading
-    # )
-    # cache_dir="/home/users/nus/e1101650/scratch/vicuna-7b-cache/models--lmsys--vicuna-7b-v1.5/snapshots/3321f76e3f527bd14065daf69dad9344000a201d"
-    cache_dir="/home/users/nus/e1101650/scratch/vicuna-13b-16k-cache/models--lmsys--vicuna-13b-v1.5-16k/snapshots/17c61f9ca19f5a7a04e96b2cc0d9bcf2920cb8c2"
-
-    tokenizer = AutoTokenizer.from_pretrained(cache_dir)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
     bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.bfloat16,
-    bnb_4bit_use_double_quant=False,
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=False,
     )
 
     model = AutoModelForCausalLM.from_pretrained(
-        cache_dir,
+        args.model_path,
         quantization_config=bnb_config,
-        device_map="cuda:0",
+        device_map=args.device,
         local_files_only = True
     )
 

@@ -8,8 +8,13 @@ def parse_args():
     parser.add_argument(
         "--model-path",
         type=str,
-        default="lmsys/vicuna-7b-v1.5",
+        default="/home/users/nus/e1101650/scratch/vicuna-13b-16k-cache/models--lmsys--vicuna-13b-v1.5-16k/snapshots/17c61f9ca19f5a7a04e96b2cc0d9bcf2920cb8c2",
         help="The path to the weights. This can be a local folder or a Hugging Face repo ID.",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        type=str,
+        default="",
     )
     parser.add_argument(
         "--device",

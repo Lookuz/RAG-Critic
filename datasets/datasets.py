@@ -96,7 +96,7 @@ def bootstrap_incorrect_responses(
         # Simplify evidence documents
         if mode == "summarize":
             batch = [(question, answer, '\n'.join(
-                summarize_document(summarizer=summarize_chain, documents=evidence)
+                summarize_document(summarizer=summarize_chain, documents=evidence, tokenizer=tokenizer, ideal_number_tokens=ideal_number_tokens)
             )) for question, answer, evidence in batch]
         elif mode == "snippet":
             batch = [(question, answer, '\n'.join(
@@ -107,14 +107,12 @@ def bootstrap_incorrect_responses(
         outputs = generate_responses(
             model, tokenizer, prompt, batch, generation_config
         )
-        print("outputs ", outputs)
         # Add additional responses to existing examples
         for q, r, d, r_ in outputs:
             bootstrapped_examples.append({
                 "question" : q, "answer" : r, "evidence" : d, "generated" : r_
             })
 
-        print("Saving...")
         if (i + 1) % save_every == 0:
             # Save additional examples to new data files
             with open(save_path, "w") as f:
@@ -136,6 +134,9 @@ def bootstrap_evaluation_generation(
     dataset = ContextualizedQADatasetForEvaluationGeneration.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
     dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
 
+    tokenizer_reader = DPRReaderTokenizer.from_pretrained("facebook/dpr-reader-multiset-base")
+    model_reader = DPRReader.from_pretrained("facebook/dpr-reader-multiset-base").to(model.device)
+
     # Check for existing generated examples
     if os.path.exists(save_path):
         with open(save_path, "r") as f:
@@ -149,6 +150,12 @@ def bootstrap_evaluation_generation(
     for i, batch in enumerate(tqdm(dataloader)):
         if i < num_generated:
             continue
+
+        # Check if evidence is already condensed, else perform some form of summarization
+        if isinstance(batch[0]['evidence'], dict):
+            batch = [(question, answer, '\n'.join(
+                extract_snippet(model_reader, tokenizer_reader, question, evidence)
+            ), generated) for question, answer, evidence, generated in batch]
 
         # Generate evaluation under correct context for correct responses
         inputs_correct_context = [(q, r, d) for q, r, d, _ in batch]

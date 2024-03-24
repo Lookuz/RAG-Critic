@@ -78,12 +78,10 @@ def summarize_document(summarizer, documents, tokenizer, ideal_number_tokens):
 
         # Prompt model for summarization
         summary = summarizer.invoke(chunked_shortened_evidence)['output_text']
-        print(f"Summary: {summary}")
         summaries.append(summary)
 
     return summaries
 
-<<<<<<< HEAD
 def extract_snippet(reader, tokenizer, question, documents):
     """
     Takes a set of evidence documents, and returns a set of snippets of the same size as documents
@@ -93,7 +91,7 @@ def extract_snippet(reader, tokenizer, question, documents):
     snippets = []
     for document in documents:
         # Use LangChain text splitter to chunk the text
-        text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n"], chunk_size=8000, chunk_overlap=500)
+        text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n"], chunk_size=2000, chunk_overlap=250)
         evidence = text_splitter.create_documents([document])
         evidence = [e.page_content for e in evidence]
 
@@ -115,35 +113,12 @@ def extract_snippet(reader, tokenizer, question, documents):
         snippets.append(evidence[top_idx])
 
     return snippets
-=======
->>>>>>> eff7b7de142172337d09081f3237b608c46a3489
 
 def generate_responses(
         model, tokenizer, 
         prompt : TaskPrompt, inputs, 
         generation_config : GenerationConfig
     ):
-<<<<<<< HEAD
-    assert (inputs is not None and len(inputs) > 0)
-    # (Q, R, D) case for bootstrapping or evaluation generation
-    if len(inputs[0]) > 2:
-        # Construct prompt
-        inputs = [
-            prompt.construct(question, evidence, answer) for question, answer, evidence in inputs
-        ]
-
-        # Tokenize inputs
-        inputs = tokenizer(inputs, padding="longest", add_special_tokens=True, return_tensors="pt")
-        input_ids, attention_mask = inputs["input_ids"].to(model.device), inputs["attention_mask"].to(model.device)
-
-        outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
-        outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-        outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
-    
-    # (Q, D) case, for RAG output generation by the target generative model
-    else:
-        pass
-=======
 
     # inputs Q,A,E (E is converted into a string by ''.join(list))
     # Construct prompt
@@ -158,9 +133,7 @@ def generate_responses(
     outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
     outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
-    print(f"inputs: {inputs}")
     # inputs = [(question, answer, evidence) for question, answer, evidence in inputs]
     outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
->>>>>>> eff7b7de142172337d09081f3237b608c46a3489
 
     return outputs
