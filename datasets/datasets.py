@@ -43,6 +43,7 @@ def bootstrap_dataset(
 
 def bootstrap_incorrect_responses(
     prompt : TaskPrompt, 
+    ideal_number_tokens,
     dataset, data_path, dataset_args : dict,
     model, tokenizer,
     generation_config,
@@ -106,12 +107,14 @@ def bootstrap_incorrect_responses(
         outputs = generate_responses(
             model, tokenizer, prompt, batch, generation_config
         )
+        print("outputs ", outputs)
         # Add additional responses to existing examples
         for q, r, d, r_ in outputs:
             bootstrapped_examples.append({
                 "question" : q, "answer" : r, "evidence" : d, "generated" : r_
             })
 
+        print("Saving...")
         if (i + 1) % save_every == 0:
             # Save additional examples to new data files
             with open(save_path, "w") as f:

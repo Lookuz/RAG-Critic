@@ -1,6 +1,6 @@
 # Compute parameters
 device="cuda"
-batch_size=4
+batch_size=1
 num_workers=8
 # max_gpu_memory="8GiB"
 num_gpus=1
@@ -19,6 +19,9 @@ max_new_tokens=512
 num_beams=1
 num_return_sequences=1
 
+# Latent Semantic Analysis parameters
+ideal_number_tokens=8000
+
 CUDA_VISIBLE_DEVICES=0 python main.py \
     --task "bootstrap-incorrect-response" \
     --num-gpus $num_gpus \
@@ -33,5 +36,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py \
     --max-new-tokens $max_new_tokens \
     --num-beams $num_beams \
     --num-return-sequences $num_return_sequences \
-    --do-sample \
-    --load-8bit
+    --ideal-number-tokens $ideal_number_tokens \
+    --batch-size $batch_size \
+    --load-8bit \
+    
