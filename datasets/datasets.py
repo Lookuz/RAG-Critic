@@ -4,14 +4,14 @@ from typing import Union
 
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import pipeline
+from transformers import pipeline, DPRReader, DPRReaderTokenizer
 from langchain.schema.document import Document
 from langchain.prompts import PromptTemplate
 from langchain.chains.summarize import load_summarize_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
-from utils.prompt import TaskPrompt, generate_responses, summarize_document
+from utils.prompt import TaskPrompt, generate_responses, summarize_document, extract_snippet
 from utils.const import *
 from utils.utils import get_derangement
 
@@ -50,6 +50,7 @@ def bootstrap_incorrect_responses(
     save_path,
     num_workers=1,
     save_every=1,
+    mode="snippet"
 ):
     # Build dataset from original examples
     dataset = ContextualizedQADatasetForBootstrapping.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
@@ -63,32 +64,43 @@ def bootstrap_incorrect_responses(
     else:
         bootstrapped_examples, num_generated = [], 0
 
-    # Initialize summarizer from LangChain
-    llm = HuggingFacePipeline(pipeline=pipeline(
-        "text-generation",
-        model=model, tokenizer=tokenizer,
-        max_new_tokens=2048,
-        temperature=generation_config.temperature,
-        top_p=generation_config.top_p,
-        repetition_penalty=generation_config.repetition_penalty,
-        do_sample=generation_config.do_sample
-    ))
-    summarize_chain = load_summarize_chain(
-        llm=llm, chain_type="map_reduce",
-        map_prompt=PromptTemplate(template=SUMMARIZE_CONTEXT_INSTRUCTION_LANGCHAIN, input_variables=["text"]), # Prompt for summarizing a single chunk,
-        combine_prompt=PromptTemplate(template=SUMMARIZE_REDUCE_INSTRUCTION_LANGCHAIN, input_variables=["text"]), # Prompt for reducing all summaries to a single summary
-        token_max=1024
-    )
+    assert mode in ["summarize", "snippet"], "mode argument must be one of 'summary' or 'snippet'!"
+
+    if mode == "summarize":
+        # Initialize summarizer from LangChain
+        llm = HuggingFacePipeline(pipeline=pipeline(
+            "text-generation",
+            model=model, tokenizer=tokenizer,
+            max_new_tokens=2048,
+            temperature=generation_config.temperature,
+            top_p=generation_config.top_p,
+            repetition_penalty=generation_config.repetition_penalty,
+            do_sample=generation_config.do_sample
+        ))
+        summarize_chain = load_summarize_chain(
+            llm=llm, chain_type="map_reduce",
+            map_prompt=PromptTemplate(template=SUMMARIZE_CONTEXT_INSTRUCTION_LANGCHAIN, input_variables=["text"]), # Prompt for summarizing a single chunk,
+            combine_prompt=PromptTemplate(template=SUMMARIZE_REDUCE_INSTRUCTION_LANGCHAIN, input_variables=["text"]), # Prompt for reducing all summaries to a single summary
+            token_max=1024
+        )
+    elif mode == "snippet":
+        tokenizer_reader = DPRReaderTokenizer.from_pretrained("facebook/dpr-reader-multiset-base")
+        model_reader = DPRReader.from_pretrained("facebook/dpr-reader-multiset-base").to(model.device)
 
     # Generate additional examples
     for i, batch in enumerate(tqdm(dataloader)):
         if i < num_generated:
             continue
 
-        # Summarize documents
-        batch = [(question, answer, '\n'.join(
-            summarize_document(summarizer=summarize_chain, documents=evidence)
-        )) for question, answer, evidence in batch]
+        # Simplify evidence documents
+        if mode == "summarize":
+            batch = [(question, answer, '\n'.join(
+                summarize_document(summarizer=summarize_chain, documents=evidence)
+            )) for question, answer, evidence in batch]
+        elif mode == "snippet":
+            batch = [(question, answer, '\n'.join(
+                extract_snippet(model_reader, tokenizer_reader, question, evidence)
+            )) for question, answer, evidence in batch]
 
         # Generate responses using summarized evidence
         outputs = generate_responses(

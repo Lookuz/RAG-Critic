@@ -1,6 +1,6 @@
+import torch
 from transformers import GenerationConfig
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
 
 from utils.const import *
 from utils.utils import extract_responses
@@ -79,6 +79,38 @@ def summarize_document(summarizer, documents):
         summaries.append(summary)
 
     return summaries
+
+def extract_snippet(reader, tokenizer, question, documents):
+    """
+    Takes a set of evidence documents, and returns a set of snippets of the same size as documents
+    containing short paragraph from each documents with the most relevant information according to the question.
+
+    """
+    snippets = []
+    for document in documents:
+        # Use LangChain text splitter to chunk the text
+        text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n"], chunk_size=8000, chunk_overlap=500)
+        evidence = text_splitter.create_documents([document])
+        evidence = [e.page_content for e in evidence]
+
+        # Output the relevance score for each paragraph in document
+        relevance_logits = []
+        for e in evidence:
+            encoded_inputs = tokenizer(
+                questions=[question],
+                texts=[e],
+                return_tensors="pt",
+            )
+            encoded_inputs = encoded_inputs.to(reader.device)
+            outputs = reader(**encoded_inputs)
+            outputs.relevance_logits
+            relevance_logits.append(outputs.relevance_logits)
+
+        relevance_logits = torch.cat(relevance_logits).flatten()
+        top_idx = torch.argmax(relevance_logits)
+        snippets.append(evidence[top_idx])
+
+    return snippets
 
 def generate_responses(
         model, tokenizer, 
