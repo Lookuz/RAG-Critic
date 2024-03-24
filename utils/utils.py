@@ -62,10 +62,19 @@ def parse_args():
     )
     parser.add_argument("--data-path", type=str, required=True)
     parser.add_argument("--save-path", type=str, required=True)
-    parser.add_argument("--ideal-number-tokens", type=int, required=True)
 
     return parser.parse_args()
 
 
 def extract_responses(outputs, delimiter):
     return [x.split(delimiter)[1].strip() for x in outputs]
+
+
+def extract_mistral_responses(outputs):
+    responses = []
+    for o in outputs:
+        model_answer = o.split("[/INST]")[-1]
+        split_result = model_answer.split("### EXPLANATION:")
+        r, exp, *_ = split_result if len(split_result) > 1 else (model_answer, "")
+        responses.append(r)
+    return responses

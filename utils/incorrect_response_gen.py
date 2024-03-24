@@ -1,5 +1,5 @@
-from transformers import GenerationConfig
-
+import torch
+import torch.nn.functional as F
 from utils import const
 from utils import utils
 
@@ -44,21 +44,30 @@ def construct_prompt_for_incorrect_response(question, response):
 def generate_incorrect_responses(
     model, tokenizer,
     prompt: TaskPrompt, inputs,
-    generation_config: GenerationConfig
 ):
     # Construct prompt
     inputs = [construct_prompt_for_incorrect_response(q, r) for q, r in inputs]
+    tokenizer_inputs = [{'role': 'user', 'content': m} for m in inputs]
 
     # Tokenize inputs
-    tokenized_inputs = tokenizer(inputs, padding="longest", add_special_tokens=True, return_tensors="pt")
-    input_ids, attention_mask = tokenized_inputs["input_ids"].to(
-        model.device), tokenized_inputs["attention_mask"].to(model.device)
+    model_inputs = [tokenizer.apply_chat_template([chat], return_tensors="pt")
+                    for chat in tokenizer_inputs]
 
-    outputs = model.generate(
-        input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
-    outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+    max_length = max([tensor.size(1) for tensor in model_inputs])
 
-    return utils.extract_responses(outputs, prompt.delimiter)
+    # Pad tensors with zeros
+    padded_tensors = []
+    for tensor in model_inputs:
+        padding = (0, max_length - tensor.size(1))
+        padded_tensor = F.pad(tensor, padding, "constant", 0)
+        padded_tensors.append(padded_tensor)
+
+    # Stack padded tensors
+    model_inputs = torch.stack(padded_tensors, dim=0).squeeze(1)
+
+    generated_ids = model.generate(model_inputs, max_new_tokens=100, do_sample=True)
+    decoded = tokenizer.batch_decode(generated_ids)
+    return utils.extract_mistral_responses(decoded)
 
 
 # def generate_responses(

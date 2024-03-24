@@ -8,12 +8,11 @@ from utils.incorrect_response_gen import TaskPrompt, generate_incorrect_response
 from utils import const
 
 
-def bootstrap_dataset(
+def bootstrap_dataset_mistral(
     prompt: TaskPrompt,
     dataset, data_path,
     dataset_args: dict,
     model, tokenizer,
-    generation_config,
     batch_size,
     save_path,
     num_workers=1,
@@ -42,9 +41,7 @@ def bootstrap_dataset(
             evidences = [x[-1] for x in batch]
             batch = [x[:-1] for x in batch]
             # Generate responses only based on question and correct answer
-            outputs = generate_incorrect_responses(
-                model, tokenizer, prompt, batch, generation_config
-            )
+            outputs = generate_incorrect_responses(model, tokenizer, prompt, batch)
 
             # Add additional responses to existing examples
             for ((q, r,), r_, d) in zip(batch, outputs, evidences):

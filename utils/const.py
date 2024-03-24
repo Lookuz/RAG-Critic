@@ -5,15 +5,16 @@ FINETUNE_CRITIC_TASK = "finetune-critic"
 
 # Task-specific prompts
 INCORRECT_RESPONSE_INSTRUCTION = (
-    "You are now a hallucination generator."
-    "Your task is to generate an incorrect but plausible answer to the given "
-    "question, given the correct answer. The incorrect answer should look "
-    "identical in formulation to the correct answer, but the core information "
-    "must be wrong to make it different from the correct answer provided. "
-    "You are allowed to arbitrarily chose the answer."
+    "Your task is to generate a false but plausible answer to the given question, "
+    "that is different from the provided correct answer. The incorrect answer should look "
+    "identical in formulation to the correct answer, but the core information must be wrong "
+    "to make it different from the correct answer provided. Please give an answer in English. "
+    "Your top priority remains to give an answer that is different from the correct one."
+    "In case you provide an explanation of why the answer is incorrect, separate the answer "
+    "and the explanation with ###EXPLANATION: "
 )
-INCORRECT_RESPONSE_TEMPLATE = "{}\n\n### QUESTION:\n{}\n\n### CORRECT RESPONSE:\n{}\n\n### INCORRECT RESPONSE:\n"
-INCORRECT_RESPONSE_DELIMITER = "### INCORRECT RESPONSE:\n"
+INCORRECT_RESPONSE_TEMPLATE = "{}\n### QUESTION:{}\n### CORRECT RESPONSE:{}\n### INCORRECT RESPONSE:"
+INCORRECT_RESPONSE_DELIMITER = "### INCORRECT RESPONSE:"
 
 SUMMARIZE_CONTEXT_INSTRUCTION = "Write a summary of this chunk of text that includes the main points and any important details."
 SUMMARIZE_CONTEXT_INSTRUCTION_LANGCHAIN = "Write a detailed summary of this chunk of text that includes the main points and any important details.\n\n{text}\n\n### SUMMARY:"
