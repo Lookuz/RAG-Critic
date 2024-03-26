@@ -34,7 +34,8 @@ def bootstrap_dataset_mistral(
 
     # Generate additional examples
     for i, batch in enumerate(tqdm(dataloader)):
-        if i < num_generated:
+        # i enumerates batches while the len is the real number of questions answered
+        if i*batch_size < num_generated:
             continue
         if prompt.task == const.BOOTSTRAP_INCORRECT_RESPONSE_TASK:
             # Get rid of the context
