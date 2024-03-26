@@ -14,8 +14,7 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Load model and tokenizer
-    # tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-    tokenizer = None
+    tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
@@ -24,13 +23,12 @@ if __name__ == "__main__":
         bnb_4bit_use_double_quant=False,
     )
 
-    # model = AutoModelForCausalLM.from_pretrained(
-    #     args.model_path,
-    #     quantization_config=bnb_config,
-    #     device_map=args.device,
-    #     local_files_only = True
-    # )
-    model = None
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model_path,
+        quantization_config=bnb_config,
+        device_map=args.device,
+        local_files_only = True
+    )
 
     # Load generation config
     generation_config = GenerationConfig(
