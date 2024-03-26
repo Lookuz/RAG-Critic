@@ -19,6 +19,8 @@ max_new_tokens=512
 num_beams=1
 num_return_sequences=1
 
+ideal_number_tokens=2000
+
 CUDA_VISIBLE_DEVICES=0 python main.py \
     --task "bootstrap-incorrect-response" \
     --num-gpus $num_gpus \
@@ -34,4 +36,4 @@ CUDA_VISIBLE_DEVICES=0 python main.py \
     --num-beams $num_beams \
     --num-return-sequences $num_return_sequences \
     --do-sample \
-    --load-8bit
+    --ideal-number-tokens $ideal_number_tokens

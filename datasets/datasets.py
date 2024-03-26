@@ -24,19 +24,23 @@ def bootstrap_dataset(
     batch_size,
     save_path,
     num_workers=1,
-    save_every=1
+    save_every=1,
+    *args,
+    **kwargs
 ):
     if task == BOOTSTRAP_INCORRECT_RESPONSE_TASK:
         bootstrap_incorrect_responses(
-            prompt, dataset, data_path, dataset_args,
-            model, tokenizer, generation_config, batch_size,
-            save_path, num_workers, save_every
+            prompt, dataset=dataset, data_path=data_path, dataset_args=dataset_args,
+            model=model, tokenizer=tokenizer, generation_config=generation_config, 
+            batch_size=batch_size, save_path=save_path, num_workers=num_workers, 
+            save_every=save_every, *args, **kwargs
         )
     elif task == BOOTSTRAP_EVALUATION_GENERATION_TASK:
         bootstrap_evaluation_generation(
-            prompt, dataset, data_path, dataset_args,
-            model, tokenizer, generation_config, batch_size,
-            save_path, num_workers, save_every
+            prompt, dataset=dataset, data_path=data_path, dataset_args=dataset_args,
+            model=model, tokenizer=tokenizer, generation_config=generation_config, 
+            batch_size=batch_size, save_path=save_path, num_workers=num_workers, 
+            save_every=save_every, *args, **kwargs
         )
     else:
         raise AssertionError("Provided task is not valid!")
@@ -51,7 +55,9 @@ def bootstrap_incorrect_responses(
     save_path,
     num_workers=1,
     save_every=1,
-    mode="snippet"
+    mode="snippet",
+    *args,
+    **kwargs
 ):
     # Build dataset from original examples
     dataset = ContextualizedQADatasetForBootstrapping.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
@@ -128,7 +134,9 @@ def bootstrap_evaluation_generation(
     batch_size,
     save_path,
     num_workers=1,
-    save_every=1
+    save_every=1,
+    *args,
+    **kwargs
 ):
     # Build dataset from original examples
     dataset = ContextualizedQADatasetForEvaluationGeneration.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)

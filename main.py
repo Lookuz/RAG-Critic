@@ -14,7 +14,8 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Load model and tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+    # tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+    tokenizer = None
 
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
@@ -23,12 +24,13 @@ if __name__ == "__main__":
         bnb_4bit_use_double_quant=False,
     )
 
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model_path,
-        quantization_config=bnb_config,
-        device_map=args.device,
-        local_files_only = True
-    )
+    # model = AutoModelForCausalLM.from_pretrained(
+    #     args.model_path,
+    #     quantization_config=bnb_config,
+    #     device_map=args.device,
+    #     local_files_only = True
+    # )
+    model = None
 
     # Load generation config
     generation_config = GenerationConfig(
@@ -54,7 +56,7 @@ if __name__ == "__main__":
     if args.task == BOOTSTRAP_INCORRECT_RESPONSE_TASK or args.task == BOOTSTRAP_EVALUATION_GENERATION_TASK:
         with torch.no_grad():
             bootstrap_dataset(
-                prompt, 
+                args.task, prompt, 
                 ideal_number_tokens=args.ideal_number_tokens,
                 dataset=args.dataset,
                 data_path=args.data_path,
