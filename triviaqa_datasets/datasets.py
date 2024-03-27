@@ -202,6 +202,43 @@ def bootstrap_evaluation_generation(
             with open(save_path, "w") as f:
                 json.dump(bootstrapped_examples, f, indent=4)
 
+# Not-contextualized
+class QADataset(Dataset):
+    """
+    Dataset for text in the form of [Q, R] pairs, containing the question and response respectively.
+    Format of data: Each entry should be in the form {"question" : ..., "answer" : ...}
+    """
+    def __init__(
+        self, data
+    ) -> None:
+        super().__init__()
+
+        self.data = data
+
+    def __getitem__(self, index):
+        return (self.data[index]["question"], self.data[index]["answer"])
+    
+    def __len__(self):
+        return len(self.data)
+    
+    @classmethod
+    def from_dataset(cls, dataset, data_path, **kwargs):
+        return {
+            "triviaqa" : cls.from_trivia_qa
+            # TODO: Other datasets, if needed
+        }[dataset](data_path)
+    
+    @classmethod
+    def from_trivia_qa(cls, data_path):
+        with open(data_path, "r") as f:
+            data = json.load(f)["Data"]
+
+        examples = []
+        for x in data:
+            question, answer = x["Question"], x["Answer"]["Value"]
+            examples.append({"question" : question, "answer" : answer})
+        return cls(data=examples)
+            
 
 class ContextualizedQADataLoader(DataLoader):
     def __init__(self, 

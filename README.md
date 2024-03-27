@@ -5,7 +5,7 @@ This repository contains the code for RAG-Critic as part of the CS5260 Deep Lear
 ```
 RAG-Critic
 |   ├── FastChat
-├── datasets
+├── triviaqa_datasets
 │   ├── NQ
 │   ├── TriviaQA
 │   └── datasets.py
@@ -59,9 +59,15 @@ python -m pip install --upgrade --quiet  langchain-openai tiktoken chromadb lang
 python -m pip install sumy
 ```
 
+5. Install datasets, bitsandbytes, perft, trl for Finetuning
+
+```
+python -m pip install datasets peft bitsandbytes trl
+```
+
 ## Downloading the datasets
 
-The primary dataset used in the repository is TriviaQA, which can be downloaded from the following link: https://nlp.cs.washington.edu/triviaqa/. Make sure to place the downloaded files for both RC and unfiltered under `datasets/TriviaQA/rc/` and `datasets/TriviaQA/unfiltered/` respectively.
+The primary dataset used in the repository is TriviaQA, which can be downloaded from the following link: https://nlp.cs.washington.edu/triviaqa/. Make sure to place the downloaded files for both RC and unfiltered under `triviaqa_datasets/TriviaQA/rc/` and `triviaqa_datasets/TriviaQA/unfiltered/` respectively.
 
 ## Using the code base
 

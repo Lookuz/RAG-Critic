@@ -1,7 +1,8 @@
 # Tasks
 BOOTSTRAP_INCORRECT_RESPONSE_TASK = "bootstrap-incorrect-response"
 BOOTSTRAP_EVALUATION_GENERATION_TASK = "bootstrap-evaluation-generation"
-FINETUNE_CRITIC_TASK = "finetune-critic"
+FINETUNE_MODEL_TASK = "finetune_model"
+REFINE_RESPONSE_WITH_CRITIC_TASK = "refine_response_with_critic"
 
 # Incorrect responses generation prompts
 INCORRECT_RESPONSE_INSTRUCTION = "You are now a hallucination generator. Please generate a hallucinated answer to the following question but adhere to the provided context. \
@@ -28,3 +29,4 @@ EVALUATION_GENERATION_DELIMITER = "### EVALUATION"
 EVALUATION_GENERATION_CORRECT_FILLER = "The response to the question provided below is correct. Elaborate on why this is so, keeping the context in mind"
 EVALUATION_GENERATION_WRONG_CONTEXT_FILLER = "The context provided below is irrelevant to both the question. Elaborate why the context is unimportant for addressing the query. Explain why the response is wrong as a consequence of such irrelevant context"
 EVALUATION_GENERATION_WRONG_RESPONSE_FILLER = "The response to the question provided below is incorrect. Elaborate on why this is so, keeping the context in mind"
+

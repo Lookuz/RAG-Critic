@@ -1,21 +1,18 @@
 import argparse
 import itertools
 import random
+from datasets import Dataset
+import matplotlib.pyplot as plt
 
+# Main arguments
 def parse_args():
     parser = argparse.ArgumentParser()
-    # Model arguments
+    # Model 
     parser.add_argument(
-        "--model-path",
+        "--model_path",
         type=str,
         default="lmsys/vicuna-13b-v1.5-16k",
-        # default="/home/users/nus/e1101650/scratch/vicuna-13b-16k-cache/models--lmsys--vicuna-13b-v1.5-16k/snapshots/17c61f9ca19f5a7a04e96b2cc0d9bcf2920cb8c2",
         help="The path to the weights. This can be a local folder or a Hugging Face repo ID.",
-    )
-    parser.add_argument(
-        "--cache-dir",
-        type=str,
-        default="",
     )
     parser.add_argument(
         "--device",
@@ -24,42 +21,15 @@ def parse_args():
         default="cuda",
         help="The device type",
     )
-    parser.add_argument(
-        "--dtype",
-        type=str,
-        choices=["float32", "float16", "bfloat16"],
-        help="Override the default dtype. If not set, it will use float16 on GPU and float32 on CPU.",
-        default=None,
-    )
-    parser.add_argument(
-        "--load-8bit", action="store_true", help="Use 8-bit quantization"
-    )
-    parser.add_argument(
-        "--cpu-offloading",
-        action="store_true",
-        help="Only when using 8-bit quantization: Offload excess weights to the CPU that don't fit on the GPU",
-    )
-    parser.add_argument("--num-gpus", type=int, default=1)
-    parser.add_argument("--max-gpu-memory", type=str, default=None)
-    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--num-workers", type=int, default=8)
-    # Generation arguments
-    parser.add_argument("--temperature", type=float, default=0.7)
-    parser.add_argument("--repetition-penalty", type=float, default=1.0)
-    parser.add_argument("--max-new-tokens", type=int, default=512)
-    parser.add_argument("--num-beams", type=int, default=1)
-    parser.add_argument("--num-return-sequences", type=int, default=1)
-    parser.add_argument("--do-sample", action='store_true')
 
-    # Task-specific arguments
+    # Task
     parser.add_argument(
         "--task",
         type=str,
-        choices=["bootstrap-incorrect-response", "bootstrap-wrong-context", "finetune-critic"],
-    
+        choices=["bootstrap-incorrect-response", "bootstrap-wrong-context", "generation-with-critic","finetune_model"]
     )
-    parser.add_argument("--evidence-path", type=str, default=None)
-    parser.add_argument("--evidence-top-k", type=int, default=5, help="Number of documents to use for context.")
 
     # Dataset and save paths
     parser.add_argument(
@@ -67,11 +37,59 @@ def parse_args():
         type=str,
         default="triviaqa",
     )
-    parser.add_argument("--data-path", type=str, required=True)
-    parser.add_argument("--save-path", type=str, required=True)
-    parser.add_argument("--ideal-number-tokens", type=int, required=True)
+    parser.add_argument("--data_path", type=str, required=True)
+    return parser.parse_known_args()
 
-    return parser.parse_args()
+# Generatation
+def parse_generation_args():
+    parser = argparse.ArgumentParser(description="Argument Parser for generation task")
+
+    # Generation 
+    parser.add_argument("--temperature", type=float, default=0.7)
+    parser.add_argument("--repetition_penalty", type=float, default=1.0)
+    parser.add_argument("--max_new_tokens", type=int, default=512)
+    parser.add_argument("--num_beams", type=int, default=1)
+    parser.add_argument("--num_return_sequences", type=int, default=1)
+    parser.add_argument("--do-sample", action='store_true')
+
+    parser.add_argument("--evidence_path", type=str, default=None)
+    parser.add_argument("--evidence_top_k", type=int, default=5, help="Number of documents to use for context.")
+
+    # Dataset and save paths
+    parser.add_argument("--save_path", type=str, required=True)
+    parser.add_argument("--ideal_number_tokens", type=int, required=True)
+    return parser.parse_known_args()
+
+# Finetune 
+def parse_finetuning_args():
+    parser = argparse.ArgumentParser(description="Argument Parser for finetuning task")
+    
+    parser.add_argument("--save_data_path", type=str, required=True)    
+    parser.add_argument("--save_model_path", type=str, required=True)
+    
+    # PEFT parameters
+    parser.add_argument("--lora_alpha", type=int, default=32)
+    parser.add_argument("--lora_dropout", type=float, default=0.1)
+    parser.add_argument("--r", type=int, default=16)
+    parser.add_argument("--bias", type=str, default="none")
+    parser.add_argument("--task_type", type=str, default="CAUSAL_LM")
+
+    # SFTT parameters
+    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--num_train_epochs", type=int, default=1)
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=2)
+    parser.add_argument("--gradient_checkpointing", action="store_true")
+    parser.add_argument("--optim", type=str, default="paged_adamw_32bit")
+    parser.add_argument("--logging_steps", type=int, default=10)
+    parser.add_argument("--save_strategy", type=str, default="epoch")
+    parser.add_argument("--learning_rate", type=float, default=2e-4)
+    parser.add_argument("--fp16", action="store_true")
+    parser.add_argument("--max_grad_norm", type=float, default=0.3)
+    parser.add_argument("--warmup_ratio", type=float, default=0.03)
+    parser.add_argument("--lr_scheduler_type", type=str, default="constant")
+    parser.add_argument("--disable-tqdm", action="store_true")
+
+    return parser.parse_known_args()
 
 def extract_responses(outputs, delimiter):
     return [x.split(delimiter)[1].strip() for x in outputs]
@@ -80,3 +98,25 @@ def get_derangement(sequence):
     valid_permutations = set([s for s in itertools.permutations(sequence) if not any([a == b for a, b in zip(s, sequence)])])
 
     return random.choice(list(valid_permutations))
+
+def convert_to_hf_dataset(dataset):
+    def gen():
+        for item in dataset:
+            yield {'question': item[0], 'answer': item[1]}
+
+    # Create a Dataset object from the generator function
+    dset = Dataset.from_generator(gen)
+    return dset
+
+def plot_training_curve(data):
+    all_losses = []
+    for i in range (len(data)-1):
+        all_losses.append(data[i]["loss"])
+    epochs = list(range(len(data)-1))
+
+    # Plot loss curve
+    plt.plot(epochs, all_losses, marker='o')
+    plt.title('Loss Curve')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.savefig('loss_curve.png')

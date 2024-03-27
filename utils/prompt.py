@@ -44,7 +44,8 @@ def get_prompt_from_task(task):
                 EVALUATION_GENERATION_DELIMITER
             ),
         }
-        # TODO: Finetune critic task
+        # TODO: Finetune critic task 
+        # (Heiman): I don't think prompt is for finetune critic task. It's for multi-turn correction with critic model right?
     }
 
     return task_prompts[task]
