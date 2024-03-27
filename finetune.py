@@ -108,5 +108,7 @@ def finetune_with_triviaqa(model, tokenizer, dataset, data_path, output_data_dir
 #             ### Response:
 #             {answer}
 #             """.format(question=sample["question"], answer=sample["answer"])
+
+# Maybe can shift this to utils/const.py
 def formatting_prompts_func(sample):
     return f"### Question: {sample['question']}\n ### Answer: {sample['answer']}"

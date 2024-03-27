@@ -16,9 +16,11 @@ if __name__ == "__main__":
     
     if args.task == BOOTSTRAP_INCORRECT_RESPONSE_TASK or args.task == BOOTSTRAP_EVALUATION_GENERATION_TASK:
         generation_args,_ = parse_generation_args()
+
     elif args.task == FINETUNE_MODEL_TASK:
         print("Parsing finetuning arguments...")
         finetuning_args,_ = parse_finetuning_args()
+        
     else:
         raise AssertionError(f"Task {args.task} invalid!")
 
@@ -82,7 +84,6 @@ if __name__ == "__main__":
                 
     # Finetuning
     elif args.task == FINETUNE_MODEL_TASK:
-
         finetune_with_triviaqa(
             model=model, tokenizer=tokenizer, dataset=args.dataset, data_path=args.data_path, output_data_dir=finetuning_args.save_data_path, output_model_dir=finetuning_args.save_model_path, batch_size=args.batch_size, args=finetuning_args)
 

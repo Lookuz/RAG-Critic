@@ -2,8 +2,6 @@
 device="cuda"
 batch_size=4
 num_workers=8
-# max_gpu_memory="8GiB"
-# num_gpus=1
 
 # Dataset parameters
 dataset="triviaqa"
