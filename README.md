@@ -11,6 +11,7 @@ RAG-Critic
 │   └── datasets.py
 ├── environment.yml
 ├── main.py
+├── finetune.py
 ├── scripts
 │   └── bootstrap_incorrect_responses.sh
 └── utils
