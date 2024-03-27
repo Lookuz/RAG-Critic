@@ -13,7 +13,10 @@ RAG-Critic
 ├── main.py
 ├── finetune.py
 ├── scripts
-│   └── bootstrap_incorrect_responses.sh
+│   ├── bootstrap_incorrect_responses.sh
+│   ├── bootstrap_evaluation_generation.sh
+│   └── finetune_model.sh
+│
 └── utils
     ├── const.py
     ├── latent_semantic_analysis.py
