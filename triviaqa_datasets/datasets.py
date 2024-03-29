@@ -160,7 +160,7 @@ def bootstrap_evaluation_generation(
             continue
 
         # Check if evidence is already condensed, else perform some form of summarization
-        if isinstance(batch[0]['evidence'], dict):
+        if isinstance(batch[0][2], dict):
             batch = [(question, answer, '\n'.join(
                 extract_snippet(model_reader, tokenizer_reader, question, evidence)
             ), generated) for question, answer, evidence, generated in batch]
@@ -319,13 +319,20 @@ class ContextualizedQADatasetForEvaluationGeneration(Dataset):
         self.data = data  
 
     def __getitem__(self, index):
-        return (self.data[index]["question"], self.data[index]["answer"], self.data[index]["evidence"], self.data[index]["generated"])
+        return self.data[index]
     
     def __len__(self):
         return len(self.data)
     
     @classmethod
-    def from_trivia_qa(cls, data_path):
+    def from_dataset(cls, dataset, data_path, **kwargs):
+        return {
+            "triviaqa" : cls.from_trivia_qa
+            # TODO: Other datasets, if needed
+        }[dataset](data_path, **kwargs)
+    
+    @classmethod
+    def from_trivia_qa(cls, data_path, *args, **kwargs):
         """
         Creates a ContextualizedQADatasetForEvaluationGeneration for the TriviaQA dataset, using the path to the data provided.
         data_path should be a path to the json file containing the respective split for the TriviaQA dataset.
@@ -334,7 +341,7 @@ class ContextualizedQADatasetForEvaluationGeneration(Dataset):
         # Where the "SearchResult" key storing the evidence is not present? It seems like extra effort is required to
         # extract these evidence, so I ignored it for now
         with open(data_path, "r") as f:
-            data = json.load(f)["Data"]
+            data = json.load(f)
 
         examples = [
             (x["question"], x["answer"], x["evidence"], x["generated"]) for x in data

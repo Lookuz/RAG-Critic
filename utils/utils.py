@@ -4,6 +4,8 @@ import random
 from datasets import Dataset
 import matplotlib.pyplot as plt
 
+from utils.const import *
+
 # Main arguments
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -11,7 +13,7 @@ def parse_args():
     parser.add_argument(
         "--model_path",
         type=str,
-        default="lmsys/vicuna-13b-v1.5-16k",
+        default="lmsys/vicuna-7b-v1.5",
         help="The path to the weights. This can be a local folder or a Hugging Face repo ID.",
     )
     parser.add_argument(
@@ -28,7 +30,12 @@ def parse_args():
     parser.add_argument(
         "--task",
         type=str,
-        choices=["bootstrap-incorrect-response", "bootstrap-wrong-context", "generation-with-critic","finetune_model"]
+        choices=[
+            BOOTSTRAP_INCORRECT_RESPONSE_TASK,
+            BOOTSTRAP_EVALUATION_GENERATION_TASK,
+            FINETUNE_MODEL_TASK,
+            REFINE_RESPONSE_WITH_CRITIC_TASK
+        ]
     )
 
     # Dataset and save paths
@@ -57,7 +64,7 @@ def parse_generation_args():
 
     # Dataset and save paths
     parser.add_argument("--save_path", type=str, required=True)
-    parser.add_argument("--ideal_number_tokens", type=int, required=True)
+    parser.add_argument("--ideal_number_tokens", type=int, default=2000)
     return parser.parse_known_args()
 
 # Finetune 

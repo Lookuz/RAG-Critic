@@ -1,13 +1,14 @@
 # Compute parameters
-device="cuda"
+device="mps"
 batch_size=4
 num_workers=8
 # num_gpus=1
+model_path=".cache/gpt2"
 
 # Dataset parameters
 dataset="triviaqa"
-data_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web-train-incorrect-response.json"
-save_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web-train-evaluation-generation.json"
+data_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web_train_incorrect_response.json"
+save_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web_train_evaluation_generation.json"
 evidence_path="triviaqa_datasets/TriviaQA/rc/evidence/wikipedia"
 evidence_top_k=3
 
@@ -20,6 +21,7 @@ num_return_sequences=1
 
 CUDA_VISIBLE_DEVICES=0 python main.py \
     --task "bootstrap-evaluation-generation" \
+    --model_path $model_path \
     --device $device \
     --batch_size $batch_size \
     --num_workers $num_workers \

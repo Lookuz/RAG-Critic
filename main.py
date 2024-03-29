@@ -27,22 +27,20 @@ if __name__ == "__main__":
     # Load model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_use_double_quant=False,
-    )
+    # bnb_config = BitsAndBytesConfig(
+    #     load_in_4bit=True,
+    #     bnb_4bit_quant_type="nf4",
+    #     bnb_4bit_compute_dtype=torch.bfloat16,
+    #     bnb_4bit_use_double_quant=False,
+    # )
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model_path,
-        quantization_config=bnb_config,
-        # device_map=args.device,
-        device_map="auto",
+        # quantization_config=bnb_config,
+        device_map=args.device,
+        # device_map="auto",
         local_files_only = True
     )
-    print("Model")
-    print(model.device)
 
     # Generation
     if args.task != FINETUNE_MODEL_TASK:
