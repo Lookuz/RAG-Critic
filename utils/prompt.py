@@ -15,18 +15,26 @@ class TaskPrompt:
         self.template = template
         self.delimiter = delimiter
 
-    def construct(self, question, context, answer):
-        return self.template.format(self.instruction, question, context, answer)
+    def construct(self, question, context, answer=None, evaluation=None):
+        if answer is not None:
+            if evaluation is not None:
+                return self.template.format(
+                    instruction=self.instruction, question=question, context=context, answer=answer, evaluation=evaluation)
+            else:
+                return self.template.format(instruction=self.instruction, question=question, context=context, answer=answer)
+        else:
+            return self.template.format(instruction=self.instruction, question=question, context=context)
 
 def get_prompt_from_task(task):
 
     task_prompts = {
+        # Incorrect response bootstrap task
         BOOTSTRAP_INCORRECT_RESPONSE_TASK : TaskPrompt(
             INCORRECT_RESPONSE_INSTRUCTION,
             INCORRECT_RESPONSE_TEMPLATE,
             INCORRECT_RESPONSE_DELIMITER
         ),
-        # Wrong context task
+        # Evaluation generation task
         BOOTSTRAP_EVALUATION_GENERATION_TASK : {
             EVALUATION_GENERATION_CORRECT_CASE : TaskPrompt(
                 EVALUATION_GENERATION_INSTRUCTION.format(EVALUATION_GENERATION_CORRECT_FILLER),
@@ -61,7 +69,9 @@ def construct_prompt_for_summarization(evidence=None):
     """
     Constructs the prompt for asking a model to summarize a piece of document or chunk
     """
-    prompt = SUMMARIZE_CONTEXT_TEMPLATE.format(SUMMARIZE_CONTEXT_INSTRUCTION, evidence) if evidence is not None else SUMMARIZE_CONTEXT_TEMPLATE.format(SUMMARIZE_CONTEXT_INSTRUCTION)
+    prompt = SUMMARIZE_CONTEXT_TEMPLATE.format(
+        instruction=SUMMARIZE_CONTEXT_INSTRUCTION, text=evidence
+    ) if evidence is not None else SUMMARIZE_CONTEXT_TEMPLATE.format(SUMMARIZE_CONTEXT_INSTRUCTION)
 
     return prompt
 
@@ -91,9 +101,13 @@ def extract_snippet(reader, tokenizer, question, documents):
     """
     snippets = []
     for document in documents:
+        # Read context passage
+        with open(document, "r") as f:
+            evidence = f.read()
+    
         # Use LangChain text splitter to chunk the text
         text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n"], chunk_size=2000, chunk_overlap=250)
-        evidence = text_splitter.create_documents([document])
+        evidence = text_splitter.create_documents([evidence])
         evidence = [e.page_content for e in evidence]
 
         # Output the relevance score for each paragraph in document
@@ -102,6 +116,7 @@ def extract_snippet(reader, tokenizer, question, documents):
             encoded_inputs = tokenizer(
                 questions=[question],
                 texts=[e],
+                truncation=True,
                 return_tensors="pt",
             )
             encoded_inputs = encoded_inputs.to(reader.device)
@@ -109,6 +124,7 @@ def extract_snippet(reader, tokenizer, question, documents):
             outputs.relevance_logits
             relevance_logits.append(outputs.relevance_logits)
 
+        # Accept only the most relevant snippet
         relevance_logits = torch.cat(relevance_logits).flatten()
         top_idx = torch.argmax(relevance_logits)
         snippets.append(evidence[top_idx])
@@ -120,38 +136,17 @@ def generate_responses(
         prompt : TaskPrompt, inputs, 
         generation_config : GenerationConfig
     ):
+    # Construct prompt from inputs (Q, D, [R, E])
+    inputs_prompt = [prompt.construct(*x) for x in inputs]
 
-    # Standard generation case - Given (Q, D), produce answer R 
-    if len(inputs[0]) < 3:
-        # Construct prompt
-        inputs_prompt = [
-            prompt.construct(question, evidence) for question, evidence in inputs
-        ]
+    # Tokenize inputs
+    inputs_tokenized = tokenizer(inputs_prompt, padding="longest", add_special_tokens=True, return_tensors="pt")
+    input_ids, attention_mask = inputs_tokenized["input_ids"].to(model.device), inputs_tokenized["attention_mask"].to(model.device)
 
-        # Tokenize inputs
-        inputs_tokenized = tokenizer(inputs_prompt, padding="longest", add_special_tokens=True, return_tensors="pt")
-        input_ids, attention_mask = inputs_tokenized["input_ids"].to(model.device), inputs_tokenized["attention_mask"].to(model.device)
+    outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
+    outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
-        outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
-        outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-
-        outputs = [(q, r, d) for (q, d), r in zip(inputs, extract_responses(outputs, prompt.delimiter))]
-
-    # Generation under bootstrapping (Given (Q, R, D), generation either incorrect responses or evaluations), or critic feedback (Given (Q, R, D), provide feedback E)
-    else:
-        # Construct prompt
-        inputs_prompt = [
-            prompt.construct(question, evidence, answer) for question, answer, evidence in inputs
-        ]
-
-        # Tokenize inputs
-        inputs_tokenized = tokenizer(inputs_prompt, padding="longest", add_special_tokens=True, return_tensors="pt")
-        input_ids, attention_mask = inputs_tokenized["input_ids"].to(model.device), inputs_tokenized["attention_mask"].to(model.device)
-
-        outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
-        outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-
-        # inputs = [(question, answer, evidence) for question, answer, evidence in inputs]
-        outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
+    # Combine outputs with inputs
+    outputs = [(*x, y) for x, y in zip(inputs, extract_responses(outputs, prompt.delimiter))]
 
     return outputs

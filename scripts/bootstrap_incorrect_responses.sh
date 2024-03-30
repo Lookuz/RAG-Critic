@@ -2,6 +2,7 @@
 device="cuda"
 batch_size=4
 num_workers=8
+model_path="lmsys/vicuna-13b-v1.5"
 
 # Dataset parameters
 dataset="triviaqa"
@@ -17,10 +18,9 @@ max_new_tokens=512
 num_beams=1
 num_return_sequences=1
 
-ideal_number_tokens=2000
-
 CUDA_VISIBLE_DEVICES=0 python main.py \
     --task "bootstrap-incorrect-response" \
+    --model_path $model_path \
     --num_gpus $num_gpus \
     --device $device \
     --batch_size $batch_size \

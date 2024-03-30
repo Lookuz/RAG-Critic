@@ -6,10 +6,11 @@ from transformers import GenerationConfig
 
 from utils.utils import *
 from utils.const import *
-from utils.prompt import get_prompt_from_task, generate_answers
+from utils.prompt import get_prompt_from_task
 from triviaqa_datasets.datasets import bootstrap_dataset
 from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM, BitsAndBytesConfig
 from finetune import finetune_with_triviaqa
+from generate import generate_answers
 
 if __name__ == "__main__":
     args,_ = parse_args()
@@ -27,18 +28,18 @@ if __name__ == "__main__":
     # Load model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_use_double_quant=False,
-    )
+    # bnb_config = BitsAndBytesConfig(
+    #     load_in_4bit=True,
+    #     bnb_4bit_quant_type="nf4",
+    #     bnb_4bit_compute_dtype=torch.bfloat16,
+    #     bnb_4bit_use_double_quant=False,
+    # )
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model_path,
-        quantization_config=bnb_config,
-        # device_map=args.device,
-        device_map="auto",
+        # quantization_config=bnb_config,
+        device_map=args.device,
+        # device_map="auto",
         local_files_only = True
     )
 
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     
     # Answer generation
     elif args.task in [GENERATE_RESPONSES_WITH_CRITIC, GENERATE_REPONSES]:
-        
+
         if args.task == GENERATE_RESPONSES_WITH_CRITIC:
             # TODO: Add critic model loading
             pass

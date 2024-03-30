@@ -5,10 +5,8 @@ from typing import Union
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import pipeline, DPRReader, DPRReaderTokenizer
-from langchain.schema.document import Document
 from langchain.prompts import PromptTemplate
 from langchain.chains.summarize import load_summarize_chain
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
 from utils.prompt import TaskPrompt, generate_responses, summarize_document, extract_snippet
@@ -47,7 +45,6 @@ def bootstrap_dataset(
 
 def bootstrap_incorrect_responses(
     prompt : TaskPrompt, 
-    ideal_number_tokens,
     dataset, data_path, dataset_args : dict,
     model, tokenizer,
     generation_config,
@@ -56,6 +53,7 @@ def bootstrap_incorrect_responses(
     num_workers=1,
     save_every=1,
     mode="snippet",
+    ideal_number_tokens=2000,
     *args,
     **kwargs
 ):
@@ -101,20 +99,21 @@ def bootstrap_incorrect_responses(
 
         # Simplify evidence documents
         if mode == "summarize":
-            batch = [(question, answer, '\n'.join(
+            batch = [(question, '\n'.join(
                 summarize_document(summarizer=summarize_chain, documents=evidence, tokenizer=tokenizer, ideal_number_tokens=ideal_number_tokens)
-            )) for question, answer, evidence in batch]
+            ), answer) for question, evidence, answer in batch]
         elif mode == "snippet":
-            batch = [(question, answer, '\n'.join(
+            batch = [(question, '\n'.join(
                 extract_snippet(model_reader, tokenizer_reader, question, evidence)
-            )) for question, answer, evidence in batch]
+            ), answer) for question, evidence, answer in batch]
 
         # Generate responses using summarized evidence
         outputs = generate_responses(
             model, tokenizer, prompt, batch, generation_config
         )
+
         # Add additional responses to existing examples
-        for q, r, d, r_ in outputs:
+        for q, d, r, r_ in outputs:
             bootstrapped_examples.append({
                 "question" : q, "answer" : r, "evidence" : d, "generated" : r_
             })
@@ -160,42 +159,39 @@ def bootstrap_evaluation_generation(
             continue
 
         # Check if evidence is already condensed, else perform some form of summarization
-        if isinstance(batch[0][2], dict):
-            batch = [(question, answer, '\n'.join(
+        if isinstance(batch[0][1], list):
+            batch = [(question, '\n'.join(
                 extract_snippet(model_reader, tokenizer_reader, question, evidence)
-            ), generated) for question, answer, evidence, generated in batch]
+            ), answer, generated) for question, evidence, answer, generated in batch]
 
         # Generate evaluation under correct context for correct responses
-        inputs_correct_context = [(q, r, d) for q, r, d, _ in batch]
+        inputs_correct_context = [(q, d, r) for q, d, r, _ in batch]
         outputs = generate_responses(
             model, tokenizer, prompt[EVALUATION_GENERATION_CORRECT_CASE], inputs_correct_context, generation_config
         )
-        for (q, r, d), e in zip(inputs_correct_context, outputs):
-            bootstrapped_examples.append({
-                "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
-            })
+        bootstrapped_examples.extend([{
+            "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
+        } for (q, d, r, e) in outputs])
 
         # Generate evaluation under correct context for wrong responses
-        inputs_incorrect_response = [(q, r_, d) for q, _, d, r_ in batch]
+        inputs_incorrect_response = [(q, d, r_) for q, d, _, r_ in batch]
         outputs = generate_responses(
             model, tokenizer, prompt[EVALUATION_GENERATION_WRONG_RESPONSE_CASE], inputs_incorrect_response, generation_config
         )
-        for (q, r, d), e in zip(inputs_incorrect_response, outputs):
-            bootstrapped_examples.append({
-                "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
-            })
+        bootstrapped_examples.extend([{
+            "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
+        } for (q, d, r, e) in outputs])
         
         # Generate evaluation under wrong context
         evidence_idx = get_derangement(list(range(len(batch))))
         # Randomly select evidence from other examples within batch
-        inputs_incorrect_context = [(q, r, batch[i][2]) for i, (q, r, _, _) in zip(evidence_idx, batch)]
+        inputs_incorrect_context = [(q, r, batch[i][1]) for i, (q, _, r , _) in zip(evidence_idx, batch)]
         outputs = generate_responses(
             model, tokenizer, prompt[EVALUATION_GENERATION_WRONG_CONTEXT_CASE], inputs_incorrect_context, generation_config
         )
-        for (q, r, d), e in zip(inputs_incorrect_context, outputs):
-            bootstrapped_examples.append({
-                "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
-            })
+        bootstrapped_examples.extend([{
+            "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
+        } for (q, d, r, e) in outputs])
 
         if (i + 1) % save_every == 0:
             # Save additional examples to new data files
@@ -267,7 +263,7 @@ class ContextualizedQADatasetForGeneration(Dataset):
         self.data = data
 
     def __getitem__(self, index):
-        return (self.data[index]["question"], self.data[index]["answer"], self.data[index]["evidence"])
+        return (self.data[index]["question"], self.data[index]["evidence"], self.data[index]["answer"],)
     
     def __len__(self):
         return len(self.data)
@@ -341,7 +337,7 @@ class ContextualizedQADatasetForEvaluationGeneration(Dataset):
             data = json.load(f)
 
         examples = [
-            (x["question"], x["answer"], x["evidence"], x["generated"]) for x in data
+            (x["question"], x["evidence"],  x["answer"], x["generated"]) for x in data
         ]
         
         return cls(data=examples)
