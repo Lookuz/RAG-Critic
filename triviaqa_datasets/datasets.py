@@ -9,7 +9,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chains.summarize import load_summarize_chain
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
-from utils.prompt import TaskPrompt, generate_responses, summarize_document, extract_snippet
+from utils.prompt import *
 from utils.const import *
 from utils.utils import get_derangement
 
@@ -198,21 +198,26 @@ def bootstrap_evaluation_generation(
             with open(save_path, "w") as f:
                 json.dump(bootstrapped_examples, f, indent=4)
 
-# Not-contextualized
-class QADataset(Dataset):
+# Fine-tuning dataset
+class ContextualizedQADatasetForCriticFinetuning(Dataset):
     """
     Dataset for text in the form of [Q, R] pairs, containing the question and response respectively.
     Format of data: Each entry should be in the form {"question" : ..., "answer" : ...}
     """
     def __init__(
-        self, data
+        self, data, prompt : TaskPrompt = None
     ) -> None:
         super().__init__()
+        if prompt is None:
+            prompt = get_prompt_from_task(FINETUNE_CRITIC_TASK)
+        self.prompt = prompt
 
         self.data = data
 
     def __getitem__(self, index):
-        return (self.data[index]["question"], self.data[index]["answer"])
+        question, evidence, answer, evaluation = self.data[index]
+        prompt = self.prompt.construct(question, evidence, answer)
+        return (prompt, evaluation)
     
     def __len__(self):
         return len(self.data)
@@ -221,33 +226,18 @@ class QADataset(Dataset):
     def from_dataset(cls, dataset, data_path, **kwargs):
         return {
             "triviaqa" : cls.from_trivia_qa
-            # TODO: Other datasets, if needed
         }[dataset](data_path)
     
     @classmethod
     def from_trivia_qa(cls, data_path):
         with open(data_path, "r") as f:
-            data = json.load(f)["Data"]
+            data = json.load(f)
 
-        examples = []
-        for x in data:
-            question, answer = x["Question"], x["Answer"]["Value"]
-            examples.append({"question" : question, "answer" : answer})
-        return cls(data=examples)
-            
-
-class ContextualizedQADataLoader(DataLoader):
-    def __init__(self, 
-        dataset: Dataset, 
-        batch_size: int = 1, 
-        shuffle: bool = False, 
-        num_workers: int = 0):
+        # NOTE: Following the same example format as per bootstrap_evaluation_generation saving, since we are fine-tuning
+        # from examples generated using that function
+        examples = [(x["question"], x["evidence"],  x["answer"], x["evaluation"]) for x in data]
         
-        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=ContextualizedQADataLoader.collate_fn)
-    
-    @classmethod
-    def collate_fn(cls, batch):
-        return batch
+        return cls(data=examples)
 
 # Bootstrapping datasets
 class ContextualizedQADatasetForGeneration(Dataset):
@@ -272,7 +262,6 @@ class ContextualizedQADatasetForGeneration(Dataset):
     def from_dataset(cls, dataset, data_path, **kwargs):
         return {
             "triviaqa" : cls.from_trivia_qa
-            # TODO: Other datasets, if needed
         }[dataset](data_path, **kwargs)
     
     @classmethod
@@ -324,7 +313,6 @@ class ContextualizedQADatasetForEvaluationGeneration(Dataset):
     def from_dataset(cls, dataset, data_path, **kwargs):
         return {
             "triviaqa" : cls.from_trivia_qa
-            # TODO: Other datasets, if needed
         }[dataset](data_path, **kwargs)
     
     @classmethod
@@ -341,3 +329,17 @@ class ContextualizedQADatasetForEvaluationGeneration(Dataset):
         ]
         
         return cls(data=examples)
+
+
+class ContextualizedQADataLoader(DataLoader):
+    def __init__(self, 
+        dataset: Dataset, 
+        batch_size: int = 1, 
+        shuffle: bool = False, 
+        num_workers: int = 0):
+        
+        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=ContextualizedQADataLoader.collate_fn)
+    
+    @classmethod
+    def collate_fn(cls, batch):
+        return batch

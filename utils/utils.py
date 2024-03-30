@@ -33,10 +33,9 @@ def parse_args():
         choices=[
             BOOTSTRAP_INCORRECT_RESPONSE_TASK,
             BOOTSTRAP_EVALUATION_GENERATION_TASK,
-            FINETUNE_MODEL_TASK,
+            FINETUNE_CRITIC_TASK,
             REFINE_RESPONSE_WITH_CRITIC_TASK,
-            GENERATE_REPONSES, 
-            GENERATE_RESPONSES_WITH_CRITIC
+            GENERATE_RESPONSES_TASK
         ]
     )
 

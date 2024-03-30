@@ -1,7 +1,7 @@
 from transformers import TrainingArguments
 from trl import SFTTrainer
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
-from triviaqa_datasets.datasets import QADataset
+from triviaqa_datasets.datasets import ContextualizedQADatasetForCriticFinetuning
 from utils.utils import convert_to_hf_dataset, plot_training_curve
 from datasets import load_from_disk
 import os
@@ -12,7 +12,7 @@ def finetune_with_triviaqa(model, tokenizer, dataset, data_path, output_data_dir
     hf_dataset_path = os.path.join(output_data_dir, "triviaqa_datasets_hf")
 
     if not os.path.exists(hf_dataset_path):
-        triviaQA = QADataset.from_dataset(dataset=dataset, data_path=data_path)
+        triviaQA = ContextualizedQADatasetForCriticFinetuning.from_dataset(dataset=dataset, data_path=data_path)
 
         print("Convert to huggingface dataset...\n")
         triviaQA_hf = convert_to_hf_dataset(triviaQA)

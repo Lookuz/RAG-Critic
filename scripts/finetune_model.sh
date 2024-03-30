@@ -34,7 +34,7 @@ lr_scheduler_type="constant"
 
 
 CUDA_VISIBLE_DEVICES=0 python main.py \
-    --task "finetune_model" \
+    --task "finetune_critic" \
     --model_path $model_path \
     --device $device \
     --batch_size $batch_size \

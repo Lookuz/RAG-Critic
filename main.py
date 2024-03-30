@@ -15,10 +15,10 @@ from generate import generate_answers
 if __name__ == "__main__":
     args,_ = parse_args()
     
-    if args.task != FINETUNE_MODEL_TASK:
+    if args.task != FINETUNE_CRITIC_TASK:
         generation_args,_ = parse_generation_args()
 
-    elif args.task == FINETUNE_MODEL_TASK:
+    elif args.task == FINETUNE_CRITIC_TASK:
         print("Parsing finetuning arguments...")
         finetuning_args,_ = parse_finetuning_args()
         
@@ -28,18 +28,18 @@ if __name__ == "__main__":
     # Load model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
-    # bnb_config = BitsAndBytesConfig(
-    #     load_in_4bit=True,
-    #     bnb_4bit_quant_type="nf4",
-    #     bnb_4bit_compute_dtype=torch.bfloat16,
-    #     bnb_4bit_use_double_quant=False,
-    # )
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=False,
+    )
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model_path,
-        # quantization_config=bnb_config,
-        device_map=args.device,
-        # device_map="auto",
+        quantization_config=bnb_config,
+        # device_map=args.device,
+        device_map="auto",
         local_files_only = True
     )
 
@@ -81,24 +81,29 @@ if __name__ == "__main__":
             )
 
     # Finetuning
-    elif args.task == FINETUNE_MODEL_TASK:
+    elif args.task == FINETUNE_CRITIC_TASK:
         finetune_with_triviaqa(
             model=model, tokenizer=tokenizer, dataset=args.dataset, data_path=args.data_path, output_data_dir=finetuning_args.save_data_path, output_model_dir=finetuning_args.save_model_path, batch_size=args.batch_size, args=finetuning_args)
     
     # Answer generation
-    elif args.task in [GENERATE_RESPONSES_WITH_CRITIC, GENERATE_REPONSES]:
+    elif args.task in [REFINE_RESPONSE_WITH_CRITIC_TASK, GENERATE_RESPONSES_TASK]:
 
-        if args.task == GENERATE_RESPONSES_WITH_CRITIC:
+        if args.task == REFINE_RESPONSE_WITH_CRITIC_TASK:
             # TODO: Add critic model loading
-            pass
+            critic_model, critic_tokenizer = None, None
+            # Construct prompt for generative model, critic model and for rewriting of the original response using feedback
+            prompt = get_prompt_from_task(GENERATE_RESPONSES_TASK)
+            critic_prompt = get_prompt_from_task(REFINE_RESPONSE_WITH_CRITIC_TASK)
+            rewrite_prompt = get_prompt_from_task(RESPONSE_REWRITE_TASK)
 
         generate_answers(
             args.task, prompt, 
-            ideal_number_tokens=generation_args.ideal_number_tokens,
             dataset=args.dataset,
             data_path=args.data_path,
             dataset_args=dataset_args,
             model=model, tokenizer=tokenizer,
+            critic_model=critic_model, critic_tokenizer=critic_tokenizer,
+            critic_prompt=critic_prompt, rewrite_prompt=rewrite_prompt,
             generation_config=generation_config,
             batch_size=args.batch_size, num_workers=args.num_workers,
             save_path=generation_args.save_path,

@@ -50,10 +50,26 @@ def get_prompt_from_task(task):
                 EVALUATION_GENERATION_INSTRUCTION.format(EVALUATION_GENERATION_WRONG_RESPONSE_FILLER),
                 EVALUATION_GENERATION_TEMPLATE,
                 EVALUATION_GENERATION_DELIMITER
-            ),
-        }
-        # TODO: Finetune critic task 
-        # (Heiman): I don't think prompt is for finetune critic task. It's for multi-turn correction with critic model right?
+            )
+        },
+        # Finetune critic task 
+        FINETUNE_CRITIC_TASK : TaskPrompt(
+            CRITIC_FEEDBACK_INSTRUCTION,
+            CRITIC_FEEDBACK_TEMPLATE,
+            CRITIC_FEEDBACK_DELIMITER
+        ),
+        # Standard generation
+        GENERATE_RESPONSES_TASK : TaskPrompt(
+            ANSWER_GENERATION_INSTRUCTION, 
+            ANSWER_GENERATION_TEMPLATE, 
+            ANSWER_GENERATION_DELIMITER
+        ),
+        # Response refinement 
+        RESPONSE_REWRITE_TASK : TaskPrompt(
+            RESPONSE_REWRITE_INSTRUCTION,
+            RESPONSE_REWRITE_TEMPLATE,
+            RESPONSE_REWRITE_DELIMITER
+        )
     }
 
     return task_prompts[task]
