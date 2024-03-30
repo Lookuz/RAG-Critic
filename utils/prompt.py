@@ -121,20 +121,37 @@ def generate_responses(
         generation_config : GenerationConfig
     ):
 
-    # inputs Q,A,E (E is converted into a string by ''.join(list))
-    # Construct prompt
-    inputs_prompt = [
-        prompt.construct(question, evidence, answer) for question, answer, evidence in inputs
-    ]
+    # Standard generation case - Given (Q, D), produce answer R 
+    if len(inputs[0]) < 3:
+        # Construct prompt
+        inputs_prompt = [
+            prompt.construct(question, evidence) for question, evidence in inputs
+        ]
 
-    # Tokenize inputs
-    inputs_tokenized = tokenizer(inputs_prompt, padding="longest", add_special_tokens=True, return_tensors="pt")
-    input_ids, attention_mask = inputs_tokenized["input_ids"].to(model.device), inputs_tokenized["attention_mask"].to(model.device)
+        # Tokenize inputs
+        inputs_tokenized = tokenizer(inputs_prompt, padding="longest", add_special_tokens=True, return_tensors="pt")
+        input_ids, attention_mask = inputs_tokenized["input_ids"].to(model.device), inputs_tokenized["attention_mask"].to(model.device)
 
-    outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
-    outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+        outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
+        outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
-    # inputs = [(question, answer, evidence) for question, answer, evidence in inputs]
-    outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
+        outputs = [(q, r, d) for (q, d), r in zip(inputs, extract_responses(outputs, prompt.delimiter))]
+
+    # Generation under bootstrapping (Given (Q, R, D), generation either incorrect responses or evaluations), or critic feedback (Given (Q, R, D), provide feedback E)
+    else:
+        # Construct prompt
+        inputs_prompt = [
+            prompt.construct(question, evidence, answer) for question, answer, evidence in inputs
+        ]
+
+        # Tokenize inputs
+        inputs_tokenized = tokenizer(inputs_prompt, padding="longest", add_special_tokens=True, return_tensors="pt")
+        input_ids, attention_mask = inputs_tokenized["input_ids"].to(model.device), inputs_tokenized["attention_mask"].to(model.device)
+
+        outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config)
+        outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+
+        # inputs = [(question, answer, evidence) for question, answer, evidence in inputs]
+        outputs = [(q, r, d, r_) for (q, r, d), r_ in zip(inputs, extract_responses(outputs, prompt.delimiter))]
 
     return outputs

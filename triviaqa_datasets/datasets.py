@@ -60,7 +60,7 @@ def bootstrap_incorrect_responses(
     **kwargs
 ):
     # Build dataset from original examples
-    dataset = ContextualizedQADatasetForBootstrapping.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
+    dataset = ContextualizedQADatasetForGeneration.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
     dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
 
     # Check for existing generated examples
@@ -253,8 +253,8 @@ class ContextualizedQADataLoader(DataLoader):
     def collate_fn(cls, batch):
         return batch
 
-
-class ContextualizedQADatasetForBootstrapping(Dataset):
+# Bootstrapping datasets
+class ContextualizedQADatasetForGeneration(Dataset):
     """
     Dataset for text in the form of [Q, R, D] triples, containing the question, response and context respectively.
     Format of data: Each entry should be in the form {"question" : ..., "answer" : ..., "evidence : ...}
@@ -337,9 +337,6 @@ class ContextualizedQADatasetForEvaluationGeneration(Dataset):
         Creates a ContextualizedQADatasetForEvaluationGeneration for the TriviaQA dataset, using the path to the data provided.
         data_path should be a path to the json file containing the respective split for the TriviaQA dataset.
         """
-        # NOTE (Wey Yeh): Currently adapted for web-<split>.json files. The wikipedia-<split>.json files adapt a different format,
-        # Where the "SearchResult" key storing the evidence is not present? It seems like extra effort is required to
-        # extract these evidence, so I ignored it for now
         with open(data_path, "r") as f:
             data = json.load(f)
 

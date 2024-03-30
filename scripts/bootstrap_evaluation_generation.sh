@@ -3,7 +3,7 @@ device="mps"
 batch_size=4
 num_workers=8
 # num_gpus=1
-model_path=".cache/gpt2"
+model_path="lmsys/vicuna-13b-v1.5"
 
 # Dataset parameters
 dataset="triviaqa"
