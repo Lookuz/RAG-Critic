@@ -156,6 +156,7 @@ def generate_responses(
     inputs_prompt = [prompt.construct(*x) for x in inputs]
 
     # Tokenize inputs
+    tokenizer.pad_token_id = tokenizer.eos_token_id
     inputs_tokenized = tokenizer(inputs_prompt, padding="longest", add_special_tokens=True, return_tensors="pt")
     input_ids, attention_mask = inputs_tokenized["input_ids"].to(model.device), inputs_tokenized["attention_mask"].to(model.device)
 

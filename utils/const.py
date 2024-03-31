@@ -7,7 +7,8 @@ GENERATE_RESPONSES_TASK = "generate_answer"
 RESPONSE_REWRITE_TASK = "response_rewrite"
 
 # Incorrect responses generation prompts
-INCORRECT_RESPONSE_INSTRUCTION = "You are now a hallucination generator. Please generate a hallucinated answer to the following question but adhere to the provided context. Ensure that your answer is different from the correct response supplied."
+# INCORRECT_RESPONSE_INSTRUCTION = "You are now a hallucination generator. Please generate a hallucinated answer to the following question but adhere to the provided context. Ensure that your answer is different from the correct response supplied."
+INCORRECT_RESPONSE_INSTRUCTION = "Given the QUESTION, CONTEXT and CORRECT RESPONSE, write an INCORRECT RESPONSE that is different from the CORRECT RESPONSE. The INCORRECT RESPONSE must be false but related to the provided CONTEXT and is a possible answer to the QUESTION. Make sure you only return the INCORRECT RESPONSE and nothing more."
 INCORRECT_RESPONSE_TEMPLATE = "{instruction}\n\n### CONTEXT\n{context}\n\n### QUESTION:\n{question}\n\n### CORRECT RESPONSE:\n{answer}\n\n### INCORRECT RESPONSE:\n"
 INCORRECT_RESPONSE_DELIMITER = "### INCORRECT RESPONSE:\n"
 
