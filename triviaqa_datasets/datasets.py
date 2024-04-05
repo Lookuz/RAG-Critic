@@ -94,7 +94,7 @@ def bootstrap_incorrect_responses(
 
     # Generate additional examples
     for i, batch in enumerate(tqdm(dataloader)):
-        if i < num_generated:
+        if i < num_generated//batch_size:
             continue
 
         # Simplify evidence documents
@@ -155,14 +155,14 @@ def bootstrap_evaluation_generation(
     # Generate additional examples
     bootstrapped_examples = []
     for i, batch in enumerate(tqdm(dataloader)):
-        if i < num_generated:
+        if i < num_generated//batch_size:
             continue
 
         # Check if evidence is already condensed, else perform some form of summarization
-        if isinstance(batch[0][1], list):
-            batch = [(question, '\n'.join(
-                extract_snippet(model_reader, tokenizer_reader, question, evidence)
-            ), answer, generated) for question, evidence, answer, generated in batch]
+        # if isinstance(batch[0][1], list):
+        #     batch = [(question, '\n'.join(
+        #         extract_snippet(model_reader, tokenizer_reader, question, evidence)
+        #     ), answer, generated) for question, evidence, answer, generated in batch]
 
         # Generate evaluation under correct context for correct responses
         inputs_correct_context = [(q, d, r) for q, d, r, _ in batch]
@@ -182,16 +182,16 @@ def bootstrap_evaluation_generation(
             "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
         } for (q, d, r, e) in outputs])
         
-        # Generate evaluation under wrong context
-        evidence_idx = get_derangement(list(range(len(batch))))
-        # Randomly select evidence from other examples within batch
-        inputs_incorrect_context = [(q, r, batch[i][1]) for i, (q, _, r , _) in zip(evidence_idx, batch)]
-        outputs = generate_responses(
-            model, tokenizer, prompt[EVALUATION_GENERATION_WRONG_CONTEXT_CASE], inputs_incorrect_context, generation_config
-        )
-        bootstrapped_examples.extend([{
-            "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
-        } for (q, d, r, e) in outputs])
+        # # Generate evaluation under wrong context
+        # evidence_idx = get_derangement(list(range(len(batch))))
+        # # Randomly select evidence from other examples within batch
+        # inputs_incorrect_context = [(q, r, batch[i][1]) for i, (q, _, r , _) in zip(evidence_idx, batch)]
+        # outputs = generate_responses(
+        #     model, tokenizer, prompt[EVALUATION_GENERATION_WRONG_CONTEXT_CASE], inputs_incorrect_context, generation_config
+        # )
+        # bootstrapped_examples.extend([{
+        #     "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
+        # } for (q, d, r, e) in outputs])
 
         if (i + 1) % save_every == 0:
             # Save additional examples to new data files

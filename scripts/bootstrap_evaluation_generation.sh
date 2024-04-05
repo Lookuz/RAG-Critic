@@ -10,6 +10,7 @@ dataset="triviaqa"
 data_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web_train_incorrect_response.json"
 save_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web_train_evaluation_generation.json"
 evidence_path="triviaqa_datasets/TriviaQA/rc/evidence/wikipedia"
+# evidence_path="/home/users/nus/e1101650/scratch/cs5260_project/critic2/RAG-Critic/triviaqa_datasets/TriviaQA/rc/evidence/wikipedia"
 evidence_top_k=3
 
 # Generation parameters

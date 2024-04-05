@@ -8,6 +8,9 @@ import os
 import json
 
 def finetune_with_triviaqa(model, tokenizer, dataset, data_path, output_data_dir, output_model_dir, batch_size, args):
+    '''
+    Load Q,D,R,E dataset from web-train-evaluation-generation.json
+    '''
     print("Loading dataset...\n")
     hf_dataset_path = os.path.join(output_data_dir, "triviaqa_datasets_hf")
 
