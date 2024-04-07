@@ -20,7 +20,7 @@ def generate_answers(
     save_path,
     num_workers=1,
     save_every=1,
-    critic_model=None, critic_tokenizer=None, 
+    model=None, tokenizer=None, 
     critic_prompt=None, rewrite_prompt=None,
     mode="snippet",
     ideal_number_tokens=2000

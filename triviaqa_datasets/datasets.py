@@ -40,7 +40,15 @@ def bootstrap_dataset(
             batch_size=batch_size, save_path=save_path, num_workers=num_workers, 
             save_every=save_every, *args, **kwargs
         )
+    elif task == GENERATE_RESPONSES_TASK:
+        bootstrap_incorrect_responses(
+            prompt, dataset=dataset, data_path=data_path, dataset_args=dataset_args,
+            model=model, tokenizer=tokenizer, generation_config=generation_config, 
+            batch_size=batch_size, save_path=save_path, num_workers=num_workers, 
+            save_every=save_every, *args, **kwargs
+        )
     else:
+        print("hello")
         raise AssertionError("Provided task is not valid!")
 
 def bootstrap_incorrect_responses(
@@ -158,12 +166,6 @@ def bootstrap_evaluation_generation(
         if i < num_generated//batch_size:
             continue
 
-        # Check if evidence is already condensed, else perform some form of summarization
-        # if isinstance(batch[0][1], list):
-        #     batch = [(question, '\n'.join(
-        #         extract_snippet(model_reader, tokenizer_reader, question, evidence)
-        #     ), answer, generated) for question, evidence, answer, generated in batch]
-
         # Generate evaluation under correct context for correct responses
         inputs_correct_context = [(q, d, r) for q, d, r, _ in batch]
         outputs = generate_responses(
@@ -182,17 +184,6 @@ def bootstrap_evaluation_generation(
             "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
         } for (q, d, r, e) in outputs])
         
-        # # Generate evaluation under wrong context
-        # evidence_idx = get_derangement(list(range(len(batch))))
-        # # Randomly select evidence from other examples within batch
-        # inputs_incorrect_context = [(q, r, batch[i][1]) for i, (q, _, r , _) in zip(evidence_idx, batch)]
-        # outputs = generate_responses(
-        #     model, tokenizer, prompt[EVALUATION_GENERATION_WRONG_CONTEXT_CASE], inputs_incorrect_context, generation_config
-        # )
-        # bootstrapped_examples.extend([{
-        #     "question" : q, "answer" : r, "evidence" : d, "evaluation" : e
-        # } for (q, d, r, e) in outputs])
-
         if (i + 1) % save_every == 0:
             # Save additional examples to new data files
             with open(save_path, "w") as f:
@@ -201,8 +192,8 @@ def bootstrap_evaluation_generation(
 # Fine-tuning dataset
 class ContextualizedQADatasetForCriticFinetuning(Dataset):
     """
-    Dataset for text in the form of [Q, R] pairs, containing the question and response respectively.
-    Format of data: Each entry should be in the form {"question" : ..., "answer" : ...}
+    Dataset for text in the form of [Q, R, D, E] pairs, containing the question and response respectively.
+    Format of data: Each entry should be in the form {"question" : ..., "answer" : ..., "evidence" : ..., "evaluation" : ...}
     """
     def __init__(
         self, data, prompt : TaskPrompt = None

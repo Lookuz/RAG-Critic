@@ -4,19 +4,20 @@ This repository contains the code for RAG-Critic as part of the CS5260 Deep Lear
 
 ```
 RAG-Critic
-|   ├── FastChat
 ├── triviaqa_datasets
-│   ├── NQ
 │   ├── TriviaQA
 │   └── datasets.py
 │
 ├── environment.yml
 ├── main.py
 ├── finetune.py
+├── generate.py
 ├── scripts
 │   ├── bootstrap_incorrect_responses.sh
 │   ├── bootstrap_evaluation_generation.sh
-│   └── finetune_model.sh
+│   ├── finetune_model.sh
+│   ├── generate_response.sh
+│   └── refine_response_with_critic.sh
 │
 └── utils
     ├── const.py
@@ -45,13 +46,6 @@ python -m pip install transformers==4.37.2
 
 **NOTE**: `transformers=4.38.1` seems have some class name inconsistencies, suggest to avoid using this version.
 
-<!-- 3. Install the FastChat dependencies:
-
-```
-cd FastChat
-python -m pip install -e ".[model_worker,webui]"
-``` -->
-
 3. Install LangChain and related dependencies
 
 ```
@@ -76,12 +70,52 @@ The primary dataset used in the repository is TriviaQA, which can be downloaded 
 
 ## Using the code base
 
-### 1. Generating False Responses
+### 1. Generating Incorrect Responses
 
 Execute the following command:
 
 ```
 ./scripts/bootstrap_incorrect_responses.sh
+```
+
+after adjusting the necessary paths and parameters.
+
+### 2. Generating Evaluations for Correct and Incorrect Responses
+
+Execute the following command:
+
+```
+./scripts/bootstrap_evaluation_generation.sh
+```
+
+after adjusting the necessary paths and parameters.
+
+### 3. Finetune Critic Model to predict Evaluations
+
+Execute the following command:
+
+```
+./scripts/finetune_critic.sh
+```
+
+after adjusting the necessary paths and parameters.
+
+### 4. Generate Responses on Test Dataset
+
+Execute the following command:
+
+```
+./scripts/generate_response.sh
+```
+
+after adjusting the necessary paths and parameters.
+
+### 5. Refine Responses on Test Dataset using Critic Model
+
+Execute the following command:
+
+```
+./scripts/refine_response_with_critic.sh
 ```
 
 after adjusting the necessary paths and parameters.

@@ -52,6 +52,9 @@ def parse_args():
 def parse_generation_args():
     parser = argparse.ArgumentParser(description="Argument Parser for generation task")
 
+    # Critic model
+    parser.add_argument("--critic_model_path", type=str, default=None)
+
     # Generation 
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--repetition_penalty", type=float, default=1.0)
@@ -89,7 +92,10 @@ def parse_finetuning_args():
     parser.add_argument("--gradient_checkpointing", action="store_true")
     parser.add_argument("--optim", type=str, default="paged_adamw_32bit")
     parser.add_argument("--logging_steps", type=int, default=10)
-    parser.add_argument("--save_strategy", type=str, default="epoch")
+    parser.add_argument("--save_strategy", type=str, default="steps")
+    parser.add_argument("--save_steps", type=int, default=20)
+    parser.add_argument("--evalution_strategy", type=str, default="steps")
+    parser.add_argument("--eval_steps", type=int, default=20)
     parser.add_argument("--learning_rate", type=float, default=2e-4)
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--max_grad_norm", type=float, default=0.3)
@@ -110,11 +116,18 @@ def get_derangement(sequence):
 def convert_to_hf_dataset(dataset):
     def gen():
         for item in dataset:
-            yield {'question': item[0], 'answer': item[1]}
+            yield {'qrd': item[0], 'e': item[1]}
 
     # Create a Dataset object from the generator function
     dset = Dataset.from_generator(gen)
     return dset
+
+def load_latest_checkpoint(checkpoint_dir):
+    checkpoint_folders = [folder for folder in os.listdir(checkpoint_dir)]
+    sorted_checkpoint_folders = sorted(checkpoint_folders, key=lambda x: int(x.split("checkpoint")[1]))
+    # Get the latest checkpoint folder
+    latest_checkpoint_folder = sorted_checkpoint_folders[-1]
+    return latest_checkpoint_folder
 
 def plot_training_curve(data):
     all_losses = []

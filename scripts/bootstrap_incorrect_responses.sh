@@ -2,17 +2,14 @@
 device="cuda"
 batch_size=4
 num_workers=8
-model_path="lmsys/vicuna-13b-v1.5"
+model_path="meta-llama/Llama-2-7b-chat-hf"
 # model_path="/home/users/nus/e1101650/scratch/llama2-chat-hf-cache/models--meta-llama--Llama-2-7b-chat-hf/snapshots/09bd0f49e16738cdfaa6e615203e126038736eb0"
-
 
 # Dataset parameters
 dataset="triviaqa"
 data_path="triviaqa_datasets/TriviaQA/rc/qa/wikipedia-train.json"
-# data_path="/home/users/nus/e1101650/scratch/cs5260_project/critic2/RAG-Critic/triviaqa_datasets/TriviaQA/rc/qa/wikipedia-train.json"
 save_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web-train-incorrect-response.json"
 evidence_path="triviaqa_datasets/TriviaQA/rc/evidence/wikipedia"
-# evidence_path="/home/users/nus/e1101650/scratch/cs5260_project/critic2/RAG-Critic/triviaqa_datasets/TriviaQA/rc/evidence/wikipedia"
 evidence_top_k=3
 
 # Generation parameters

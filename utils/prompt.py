@@ -37,12 +37,12 @@ def get_prompt_from_task(task):
         # Evaluation generation task
         BOOTSTRAP_EVALUATION_GENERATION_TASK : {
             EVALUATION_GENERATION_CORRECT_CASE : TaskPrompt(
-                EVALUATION_GENERATION_INSTRUCTION.format(EVALUATION_GENERATION_CORRECT_FILLER),
+                EVALUATION_GENERATION_INSTRUCTION.format(filler=EVALUATION_GENERATION_CORRECT_FILLER),
                 EVALUATION_GENERATION_TEMPLATE,
                 EVALUATION_GENERATION_DELIMITER
             ),
             EVALUATION_GENERATION_WRONG_RESPONSE_CASE : TaskPrompt(
-                EVALUATION_GENERATION_INSTRUCTION.format(EVALUATION_GENERATION_WRONG_RESPONSE_FILLER),
+                EVALUATION_GENERATION_INSTRUCTION.format(filler=EVALUATION_GENERATION_WRONG_RESPONSE_FILLER),
                 EVALUATION_GENERATION_TEMPLATE,
                 EVALUATION_GENERATION_DELIMITER
             ),
@@ -118,8 +118,10 @@ def extract_snippet(reader, tokenizer, question, documents):
     snippets = []
     for document in documents:
         # Read context passage
+        print(f"document:{document}")
         with open(document, "r") as f:
             evidence = f.read()
+
     
         # Use LangChain text splitter to chunk the text
         text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n"], chunk_size=2000, chunk_overlap=250)

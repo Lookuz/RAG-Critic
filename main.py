@@ -43,30 +43,43 @@ if __name__ == "__main__":
         local_files_only = True
     )
 
-    # Load generation hyperparameters
-    generation_config = GenerationConfig(
-        temperature=generation_args.temperature,
-        repetition_penalty=generation_args.repetition_penalty,
-        max_new_tokens=generation_args.max_new_tokens,
-        num_beams=generation_args.num_beams,
-        num_return_sequences=generation_args.num_return_sequences,
-        do_sample=False
-    )
-    
-    dataset_args = {
-        "evidence_path" : generation_args.evidence_path,
-        "top_k" : generation_args.evidence_top_k
-    }
-
-    # Load task-specific prompt template
-    prompt = get_prompt_from_task(task=args.task)
-
-    if not os.path.exists(os.path.dirname(generation_args.save_path)):
-        os.makedirs(os.path.dirname(generation_args.save_path))
-
     # Bootstrapping
-    if args.task in [BOOTSTRAP_EVALUATION_GENERATION_TASK, BOOTSTRAP_INCORRECT_RESPONSE_TASK]:
+    if args.task in [BOOTSTRAP_EVALUATION_GENERATION_TASK, BOOTSTRAP_INCORRECT_RESPONSE_TASK, GENERATE_RESPONSES_TASK]:            
+        # Load generation hyperparameters
+        generation_config = GenerationConfig(
+            temperature=generation_args.temperature,
+            repetition_penalty=generation_args.repetition_penalty,
+            max_new_tokens=generation_args.max_new_tokens,
+            num_beams=generation_args.num_beams,
+            num_return_sequences=generation_args.num_return_sequences,
+            do_sample=False
+        )
+        
+        dataset_args = {
+            "evidence_path" : generation_args.evidence_path,
+            "top_k" : generation_args.evidence_top_k
+        }
 
+        # Load task-specific prompt template
+        prompt = get_prompt_from_task(task=args.task)
+        if not os.path.exists(os.path.dirname(generation_args.save_path)):
+            os.makedirs(os.path.dirname(generation_args.save_path))
+
+        # Standard generation for test dataset
+        if args.task == GENERATE_RESPONSES_TASK:
+            with torch.no_grad():
+                generate_answers(
+                    args.task, prompt, 
+                    dataset=args.dataset,
+                    data_path=args.data_path,
+                    dataset_args=dataset_args,
+                    model=model, tokenizer=tokenizer,
+                    generation_config=generation_config,
+                    batch_size=args.batch_size, num_workers=args.num_workers,
+                    save_path=generation_args.save_path,
+                )
+
+        # Bootstrapping for incorrect responses / evaluations
         with torch.no_grad():
             bootstrap_dataset(
                 args.task, prompt, 
@@ -85,16 +98,22 @@ if __name__ == "__main__":
         finetune_with_triviaqa(
             model=model, tokenizer=tokenizer, dataset=args.dataset, data_path=args.data_path, output_data_dir=finetuning_args.save_data_path, output_model_dir=finetuning_args.save_model_path, batch_size=args.batch_size, args=finetuning_args)
     
-    # Answer generation
-    elif args.task in [REFINE_RESPONSE_WITH_CRITIC_TASK, GENERATE_RESPONSES_TASK]:
+    # Evaluation by critic
+    elif args.task == REFINE_RESPONSE_WITH_CRITIC_TASK:
+        # Load critic model and tokenizer
+        critic_tokenizer = AutoTokenizer.from_pretrained(generation_args.model_path)
 
-        if args.task == REFINE_RESPONSE_WITH_CRITIC_TASK:
-            # TODO: Add critic model loading
-            critic_model, critic_tokenizer = None, None
-            # Construct prompt for generative model, critic model and for rewriting of the original response using feedback
-            prompt = get_prompt_from_task(GENERATE_RESPONSES_TASK)
-            critic_prompt = get_prompt_from_task(REFINE_RESPONSE_WITH_CRITIC_TASK)
-            rewrite_prompt = get_prompt_from_task(RESPONSE_REWRITE_TASK)
+        critic_model = AutoModelForCausalLM.from_pretrained(
+            generation_args.model_path,
+            quantization_config=bnb_config,
+            # device_map=args.device,
+            device_map="auto",
+            local_files_only = True
+        )
+        
+        # Construct prompt for critic model and for rewriting of the original response using feedback
+        critic_prompt = get_prompt_from_task(REFINE_RESPONSE_WITH_CRITIC_TASK)
+        rewrite_prompt = get_prompt_from_task(RESPONSE_REWRITE_TASK)
 
         generate_answers(
             args.task, prompt, 

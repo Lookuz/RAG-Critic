@@ -9,7 +9,7 @@ import json
 
 def finetune_with_triviaqa(model, tokenizer, dataset, data_path, output_data_dir, output_model_dir, batch_size, args):
     '''
-    Load Q,D,R,E dataset from web-train-evaluation-generation.json
+    Load Q,D,R,E dataset from web_train_evaluation_generation.json
     '''
     print("Loading dataset...\n")
     hf_dataset_path = os.path.join(output_data_dir, "triviaqa_datasets_hf")
@@ -24,7 +24,7 @@ def finetune_with_triviaqa(model, tokenizer, dataset, data_path, output_data_dir
         triviaQA_hf.save_to_disk(os.path.join(output_data_dir, "triviaqa_datasets_hf"))
 
         # Train val 90-10
-        triviaQA_hf_split = triviaQA_hf.train_test_split(test_size=0.1)    
+        triviaQA_hf_split = triviaQA_hf.train_test_split(test_size=0.1, shuffle=False)    
         triviaQA_hf_split["train"].save_to_disk(os.path.join(output_data_dir, "triviaqa_datasets_hf_train"))
         triviaQA_hf_split["test"].save_to_disk(os.path.join(output_data_dir, "triviaqa_datasets_hf_val"))
 
@@ -67,7 +67,7 @@ def finetune_with_triviaqa(model, tokenizer, dataset, data_path, output_data_dir
         disable_tqdm=args.disable_tqdm
     )
 
-    max_seq_length = 4096 # max sequence length for model 
+    max_seq_length = 1024 # max sequence length for model 
 
     trainer = SFTTrainer(
         model=model,
@@ -100,18 +100,9 @@ def finetune_with_triviaqa(model, tokenizer, dataset, data_path, output_data_dir
     log_history = data["log_history"]
     plot_training_curve(log_history)
 
-
-# def generate_prompt(sample):
-#     return f"""
-#             You are an expert with general knowledge. 
-#             ### Instruction: Based on your knowledge from Wikipedia articles, answer the question.
-#             ### Input:
-#             {question}
-
-#             ### Response:
-#             {answer}
-#             """.format(question=sample["question"], answer=sample["answer"])
-
 # Maybe can shift this to utils/const.py
 def formatting_prompts_func(sample):
-    return f"### Question: {sample['question']}\n ### Answer: {sample['answer']}"
+    return f"""
+{sample["qrd"]}
+{sample["e"]}
+"""
