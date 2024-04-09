@@ -150,7 +150,6 @@ def generate_responses(
     ):
     # Construct prompt from inputs (Q, D, [R, E])
     inputs_prompt = [prompt.construct(*x) for x in inputs]
-    print(inputs_prompt)
 
     # Tokenize inputs
     tokenizer.pad_token_id = tokenizer.eos_token_id

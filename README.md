@@ -98,6 +98,8 @@ Execute the following command:
 ./scripts/finetune_critic.sh
 ```
 
+The weights of our finetuned model can be found [here](https://drive.google.com/drive/folders/1vum8GMIHifRrynfsEBBOppXEOyGXE8pV?usp=sharing)
+
 after adjusting the necessary paths and parameters.
 
 ### 4. Generate Responses on Test Dataset
