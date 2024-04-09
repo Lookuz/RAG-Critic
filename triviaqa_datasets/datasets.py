@@ -48,7 +48,6 @@ def bootstrap_dataset(
             save_every=save_every, *args, **kwargs
         )
     else:
-        print("hello")
         raise AssertionError("Provided task is not valid!")
 
 def bootstrap_incorrect_responses(
@@ -168,6 +167,7 @@ def bootstrap_evaluation_generation(
 
         # Generate evaluation under correct context for correct responses
         inputs_correct_context = [(q, d, r) for q, d, r, _ in batch]
+        print(f"inputs_correct_context: {inputs_correct_context}")
         outputs = generate_responses(
             model, tokenizer, prompt[EVALUATION_GENERATION_CORRECT_CASE], inputs_correct_context, generation_config
         )
@@ -334,3 +334,4 @@ class ContextualizedQADataLoader(DataLoader):
     @classmethod
     def collate_fn(cls, batch):
         return batch
+        

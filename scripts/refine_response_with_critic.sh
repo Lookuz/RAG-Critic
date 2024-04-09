@@ -25,6 +25,7 @@ ideal_number_tokens=2000
 CUDA_VISIBLE_DEVICES=0 python main.py \
     --task "refine_response_with_critic" \
     --model_path $model_path \
+    --critic_model_path $critic_model_path \
     --num_gpus $num_gpus \
     --device $device \
     --batch_size $batch_size \

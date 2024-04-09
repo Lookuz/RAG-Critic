@@ -2,8 +2,9 @@
 device="cuda"
 batch_size=4
 num_workers=8
-# Might consider meta-llama/Llama-2-13b-chat-hf since we need a "teachere model" for good evaluations
-model_path="meta-llama/Llama-2-7b-chat-hf"
+# Might consider meta-llama/Llama-2-13b-chat-hf since we need a "teacher model" for good evaluations
+# model_path="meta-llama/Llama-2-7b-chat-hf"
+model_path="/home/users/nus/e1101650/scratch/llama2-chat-hf-cache/models--meta-llama--Llama-2-7b-chat-hf/snapshots/09bd0f49e16738cdfaa6e615203e126038736eb0"
 
 # Dataset parameters
 dataset="triviaqa"

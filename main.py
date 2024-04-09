@@ -79,19 +79,20 @@ if __name__ == "__main__":
                     save_path=generation_args.save_path,
                 )
 
-        # Bootstrapping for incorrect responses / evaluations
-        with torch.no_grad():
-            bootstrap_dataset(
-                args.task, prompt, 
-                ideal_number_tokens=generation_args.ideal_number_tokens,
-                dataset=args.dataset,
-                data_path=args.data_path,
-                dataset_args=dataset_args,
-                model=model, tokenizer=tokenizer,
-                generation_config=generation_config,
-                batch_size=args.batch_size, num_workers=args.num_workers,
-                save_path=generation_args.save_path,
-            )
+        else:
+            # Bootstrapping for incorrect responses / evaluations
+            with torch.no_grad():
+                bootstrap_dataset(
+                    args.task, prompt, 
+                    ideal_number_tokens=generation_args.ideal_number_tokens,
+                    dataset=args.dataset,
+                    data_path=args.data_path,
+                    dataset_args=dataset_args,
+                    model=model, tokenizer=tokenizer,
+                    generation_config=generation_config,
+                    batch_size=args.batch_size, num_workers=args.num_workers,
+                    save_path=generation_args.save_path,
+                )
 
     # Finetuning
     elif args.task == FINETUNE_CRITIC_TASK:
@@ -101,15 +102,37 @@ if __name__ == "__main__":
     # Evaluation by critic
     elif args.task == REFINE_RESPONSE_WITH_CRITIC_TASK:
         # Load critic model and tokenizer
-        critic_tokenizer = AutoTokenizer.from_pretrained(generation_args.model_path)
+        print("Loading critic model...")
+        critic_tokenizer = AutoTokenizer.from_pretrained(generation_args.critic_model_path)
 
         critic_model = AutoModelForCausalLM.from_pretrained(
-            generation_args.model_path,
+            generation_args.critic_model_path,
             quantization_config=bnb_config,
             # device_map=args.device,
             device_map="auto",
             local_files_only = True
         )
+        
+        # Load generation hyperparameters
+        generation_config = GenerationConfig(
+            temperature=generation_args.temperature,
+            repetition_penalty=generation_args.repetition_penalty,
+            max_new_tokens=generation_args.max_new_tokens,
+            num_beams=generation_args.num_beams,
+            num_return_sequences=generation_args.num_return_sequences,
+            do_sample=False
+        )
+        
+        dataset_args = {
+            "evidence_path" : generation_args.evidence_path,
+            "top_k" : generation_args.evidence_top_k
+        }
+
+        # Load task-specific prompt template
+        prompt = get_prompt_from_task(task=args.task)
+        if not os.path.exists(os.path.dirname(generation_args.save_path)):
+            os.makedirs(os.path.dirname(generation_args.save_path))
+
         
         # Construct prompt for critic model and for rewriting of the original response using feedback
         critic_prompt = get_prompt_from_task(REFINE_RESPONSE_WITH_CRITIC_TASK)

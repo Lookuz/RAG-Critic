@@ -46,11 +46,6 @@ def get_prompt_from_task(task):
                 EVALUATION_GENERATION_TEMPLATE,
                 EVALUATION_GENERATION_DELIMITER
             ),
-            # EVALUATION_GENERATION_WRONG_CONTEXT_CASE : TaskPrompt(
-            #     EVALUATION_GENERATION_INSTRUCTION.format(EVALUATION_GENERATION_WRONG_RESPONSE_FILLER),
-            #     EVALUATION_GENERATION_TEMPLATE,
-            #     EVALUATION_GENERATION_DELIMITER
-            # )
         },
         # Finetune critic task 
         FINETUNE_CRITIC_TASK : TaskPrompt(
@@ -118,7 +113,6 @@ def extract_snippet(reader, tokenizer, question, documents):
     snippets = []
     for document in documents:
         # Read context passage
-        print(f"document:{document}")
         with open(document, "r") as f:
             evidence = f.read()
 
@@ -156,6 +150,7 @@ def generate_responses(
     ):
     # Construct prompt from inputs (Q, D, [R, E])
     inputs_prompt = [prompt.construct(*x) for x in inputs]
+    print(inputs_prompt)
 
     # Tokenize inputs
     tokenizer.pad_token_id = tokenizer.eos_token_id

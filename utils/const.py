@@ -4,7 +4,7 @@ BOOTSTRAP_EVALUATION_GENERATION_TASK = "bootstrap-evaluation-generation"
 FINETUNE_CRITIC_TASK = "finetune_critic"
 REFINE_RESPONSE_WITH_CRITIC_TASK = "refine_response_with_critic"
 GENERATE_RESPONSES_TASK = "generate_answer"
-RESPONSE_REWRITE_TASK = "response_rewrite"
+RESPONSE_REWRITE_TASK = "refine_response_with_critic"
 
 # Incorrect responses generation prompts
 # INCORRECT_RESPONSE_INSTRUCTION = "You are now a hallucination generator. Please generate a hallucinated answer to the following question but adhere to the provided context. Ensure that your answer is different from the correct response supplied."
