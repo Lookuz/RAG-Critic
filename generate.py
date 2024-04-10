@@ -91,17 +91,20 @@ def generate_answers(
             } for (q, d, r), a in zip(outputs, answers)])
         
         elif task == REFINE_RESPONSE_WITH_CRITIC_TASK:
-            # Provide critic feedback for (Q, D, R) with critic model => (Q, D, R, E)
+            # Generate evaluation for generated responses on test set
+            inputs_generated_response = [(q, d, r_generated) for q, d, _, r_generated in batch]
+            answers = [answer for _, _, answer, _ in batch]
 
+            # Provide critic feedback for (Q, D, R) with critic model => (Q, D, R, E)
             outputs_critic = generate_responses(
-                critic_model, critic_tokenizer, critic_prompt, batch, generation_config)
+                critic_model, critic_tokenizer, critic_prompt, inputs_generated_response, generation_config)
                 
             # # Re-generate with critic model feedback - (Q, D, R, E)
-            # outputs = generate_responses(model, tokenizer, rewrite_prompt, outputs_critic, generation_config)
+            outputs = generate_responses(model, tokenizer, rewrite_prompt, outputs_critic, generation_config)
 
-            # generated.extend([{
-            #     "question" : q, "answer" : a, "evidence" : d, "generated" : r, "refined" : r_, "evaluation" : e
-            # } for (q, d, r, e, r_), a in zip(outputs, answers)])
+            generated.extend([{
+                "question" : q, "answer" : a, "evidence" : d, "generated" : r, "refined" : r_, "evaluation" : e
+            } for (q, d, r, e, r_), a in zip(outputs, answers)])
 
         else:
             raise AssertionError(f"Task {args.task} invalid!")

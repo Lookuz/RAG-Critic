@@ -47,17 +47,23 @@ def get_prompt_from_task(task):
                 EVALUATION_GENERATION_DELIMITER
             ),
         },
-        # Finetune critic task 
-        FINETUNE_CRITIC_TASK : TaskPrompt(
-            CRITIC_FEEDBACK_INSTRUCTION,
-            CRITIC_FEEDBACK_TEMPLATE,
-            CRITIC_FEEDBACK_DELIMITER
-        ),
+        # # Finetune critic task 
+        # FINETUNE_CRITIC_TASK : TaskPrompt(
+        #     CRITIC_FEEDBACK_INSTRUCTION,
+        #     CRITIC_FEEDBACK_TEMPLATE,
+        #     CRITIC_FEEDBACK_DELIMITER
+        # ),
         # Standard generation
         GENERATE_RESPONSES_TASK : TaskPrompt(
             ANSWER_GENERATION_INSTRUCTION, 
             ANSWER_GENERATION_TEMPLATE, 
             ANSWER_GENERATION_DELIMITER
+        ),
+        # Critic feedback prompts
+        REFINE_RESPONSE_WITH_CRITIC_TASK : TaskPrompt(
+            CRITIC_FEEDBACK_INSTRUCTION,
+            CRITIC_FEEDBACK_TEMPLATE,
+            CRITIC_FEEDBACK_DELIMITER
         ),
         # Response refinement 
         RESPONSE_REWRITE_TASK : TaskPrompt(
@@ -149,6 +155,10 @@ def generate_responses(
         generation_config : GenerationConfig
     ):
     # Construct prompt from inputs (Q, D, [R, E])
+
+    if prompt.delimiter == RESPONSE_REWRITE_DELIMITER:
+        print(f"inputs: {inputs}")
+
     inputs_prompt = [prompt.construct(*x) for x in inputs]
 
     # Tokenize inputs
@@ -161,5 +171,7 @@ def generate_responses(
 
     # Combine outputs with inputs
     outputs = [(*x, y) for x, y in zip(inputs, extract_responses(outputs, prompt.delimiter))]
-
+    
+    if prompt.delimiter == RESPONSE_REWRITE_DELIMITER:
+        print(f"outputs: {outputs}")
     return outputs

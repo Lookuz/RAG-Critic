@@ -283,7 +283,7 @@ class ContextualizedQADatasetForGeneration(Dataset):
 
 class ContextualizedQADatasetForEvaluationGeneration(Dataset):
     """
-    Dataset for text in the form of [Q, R, D, R'] triples, containing the question, response, context and generated false responses respectively.
+    Dataset for text in the form of [Q, R, D, R'] triples, containing the question, response, context and generated (false) responses respectively.
     Format of data: Each entry should be in the form {"question" : ..., "answer" : ..., "evidence : ..., "generated" : ...}
     """
     def __init__(
