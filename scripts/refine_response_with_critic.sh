@@ -5,7 +5,7 @@ num_workers=8
 model_path="/home/users/nus/e1101650/scratch/llama2-chat-hf-cache/models--meta-llama--Llama-2-7b-chat-hf/snapshots/09bd0f49e16738cdfaa6e615203e126038736eb0"
 
 # Load finetuned model
-critic_model_path="finetuned_models/checkpoint-20"
+critic_model_path="finetuned_models/checkpoint-700"
 
 # Dataset parameters
 dataset="triviaqa"
