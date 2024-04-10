@@ -155,10 +155,6 @@ def generate_responses(
         generation_config : GenerationConfig
     ):
     # Construct prompt from inputs (Q, D, [R, E])
-
-    if prompt.delimiter == RESPONSE_REWRITE_DELIMITER:
-        print(f"inputs: {inputs}")
-
     inputs_prompt = [prompt.construct(*x) for x in inputs]
 
     # Tokenize inputs
@@ -172,6 +168,4 @@ def generate_responses(
     # Combine outputs with inputs
     outputs = [(*x, y) for x, y in zip(inputs, extract_responses(outputs, prompt.delimiter))]
     
-    if prompt.delimiter == RESPONSE_REWRITE_DELIMITER:
-        print(f"outputs: {outputs}")
     return outputs
