@@ -14,7 +14,7 @@ save_data_path="triviaqa_datasets/answer_evaluation_results/{$metric}.json"
 save_every=10
 
 # Prompt the user for the authentication token
-echo -n "Enter your HuggingFace authentication token for using LLaMa 2: "
+echo -n "Enter your HuggingFace authentication token for using LLaMa 2 (leave empty if not using llama or loading from local): "
 read -s auth_token
 echo
 
@@ -28,5 +28,5 @@ CUDA_VISIBLE_DEVICES=0 python main.py \
     --dataset $dataset \
     --data_path $data_path \
     --hf_token $auth_token \
-    --save_data_path $save_data_path \
+    --save_path $save_data_path \
     --save_every $save_every

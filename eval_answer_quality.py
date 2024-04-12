@@ -9,6 +9,7 @@ from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from triviaqa_datasets.datasets import ContextualizedQADatasetForQualityEvaluation, ContextualizedQADataLoader
 
+
 class DeepEvalLlama2_7B(DeepEvalBaseLLM):
     def __init__(
         self,
@@ -38,7 +39,8 @@ class DeepEvalLlama2_7B(DeepEvalBaseLLM):
     def get_model_name(self):
         return "Llama 2 7B"
 
-# Given a question, the ground truth answer, evaluate the relevance of the zero-shot and critic-refined generated responses            
+
+# Given a question, ground truth answer, evaluate the relevance of the zero-shot and critic-refined generated responses
 def evaluate_answers_quality(
     metric,
     dataset, data_path,
@@ -61,7 +63,7 @@ def evaluate_answers_quality(
             model = AutoModelForCausalLM.from_pretrained(kwargs["eval_model_path"])
             tokenizer = AutoTokenizer.from_pretrained(kwargs["eval_model_path"])
         else:
-            raise AssertionError(f"GEval metric requires one of hf_token or eval_model_path")
+            raise AssertionError("GEval metric requires one of hf_token or eval_model_path")
 
         mistral_7b = DeepEvalLlama2_7B(model=model, tokenizer=tokenizer, device=device)
 
@@ -116,7 +118,7 @@ def evaluate_answers_quality(
             # print(coherence_metric.reason)
         else:
             raise AssertionError(f"Metric {args.task} not implemented")
-        
+
         outputs.append((q, r_gt, r_zs, r_cr, score_zs, score_cr))
 
     scores.extend([{
@@ -127,8 +129,8 @@ def evaluate_answers_quality(
             "refined": r_cr,
             "score_refined": score_cr
         } for (q, r_gt, r_zs, r_cr,  score_zs, score_cr) in outputs])
-        
+
     if (i + 1) % save_every == 0:
-            # Save additional examples to new data files
-            with open(save_path, "w") as f:
-                json.dump(scores, f, indent=4)    
+        # Save additional examples to new data files
+        with open(save_path, "w") as f:
+            json.dump(scores, f, indent=4)

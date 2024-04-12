@@ -11,6 +11,7 @@ from triviaqa_datasets.datasets import bootstrap_dataset
 from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM, BitsAndBytesConfig
 from finetune import finetune_with_triviaqa
 from generate import generate_answers
+from eval_answer_quality import evaluate_answers_quality
 
 if __name__ == "__main__":
     args,_ = parse_args()

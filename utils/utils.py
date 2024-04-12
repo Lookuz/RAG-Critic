@@ -35,7 +35,8 @@ def parse_args():
             BOOTSTRAP_EVALUATION_GENERATION_TASK,
             FINETUNE_CRITIC_TASK,
             REFINE_RESPONSE_WITH_CRITIC_TASK,
-            GENERATE_RESPONSES_TASK
+            GENERATE_RESPONSES_TASK,
+            EVALUATE_ANSWERS_QUALITY_TASK
         ]
     )
 
