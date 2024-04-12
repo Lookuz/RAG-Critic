@@ -105,6 +105,19 @@ def parse_finetuning_args():
 
     return parser.parse_known_args()
 
+# Evaluation
+def parse_evaluation_args():
+    parser = argparse.ArgumentParser(description="Argument Parser for generation task")
+
+    # Metric, Hugging Face token or model path in case metric needs an LLM 
+    parser.add_argument("--metric", type=str, default='GLEU')
+    parser.add_argument("--hf_token", type=str, default=None)
+    parser.add_argument("--eval_model_path", type=str, default=None)
+    
+    # Save paths
+    parser.add_argument("--save_path", type=str, required=True)
+    return parser.parse_known_args()
+
 def extract_responses(outputs, delimiter):
     return [x.split(delimiter)[1].strip() for x in outputs]
 
