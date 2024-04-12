@@ -14,16 +14,18 @@ from generate import generate_answers
 
 if __name__ == "__main__":
     args,_ = parse_args()
-    
-    if args.task != FINETUNE_CRITIC_TASK:
-        generation_args,_ = parse_generation_args()
 
-    elif args.task == FINETUNE_CRITIC_TASK:
+    if args.task == FINETUNE_CRITIC_TASK:
         print("Parsing finetuning arguments...")
-        finetuning_args,_ = parse_finetuning_args()
-        
+        finetuning_args, _ = parse_finetuning_args()
+
+    elif args.task == EVALUATE_ANSWERS_QUALITY_TASK:
+        print("Parsing evaluation arguments...")
+        evaluation_args, _ = parse_evaluation_args()
+        print(evaluation_args)
+
     else:
-        raise AssertionError(f"Task {args.task} invalid!")
+        geseneration_args, _ = parse_generation_args()
 
     if args.task != EVALUATE_ANSWERS_QUALITY_TASK:
         # Load model and tokenizer
