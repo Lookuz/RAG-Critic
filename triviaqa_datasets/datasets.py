@@ -320,6 +320,46 @@ class ContextualizedQADatasetForEvaluationGeneration(Dataset):
         
         return cls(data=examples)
 
+# Answers evaluation dataset: zero-shot vs critic-refined
+class ContextualizedQADatasetForQualityEvaluation(Dataset):
+    """
+    Dataset for text in the form of [Q, R, R_zs, R_cr] triples, containing the question, the ground-truth answer,
+    the zero-shot response, and the critic-refined response respectively.
+    Format of data: Each entry should be in the form {"question" : ..., "answer" : ..., "generated" : ..., "refined" : ...}
+    """
+    def __init__(
+        self, data
+    ) -> None:
+        super().__init__()
+
+        self.data = data  
+
+    def __getitem__(self, index):
+        return self.data[index]
+    
+    def __len__(self):
+        return len(self.data)
+    
+    @classmethod
+    def from_dataset(cls, dataset, data_path, **kwargs):
+        return {
+            "triviaqa" : cls.from_trivia_qa
+        }[dataset](data_path, **kwargs)
+    
+    @classmethod
+    def from_trivia_qa(cls, data_path, *args, **kwargs):
+        """
+        Creates a ContextualizedQADatasetForEvaluationGeneration for the TriviaQA dataset, using the path to the data provided.
+        data_path should be a path to the json file containing the respective split for the TriviaQA dataset.
+        """
+        with open(data_path, "r") as f:
+            data = json.load(f)
+
+        examples = [
+            (x["question"], x["answer"],  x["generated"], x["refined"]) for x in data
+        ]
+        
+        return cls(data=examples)
 
 class ContextualizedQADataLoader(DataLoader):
     def __init__(self, 
