@@ -7,7 +7,7 @@ num_workers=8
 dataset="triviaqa"
 model_path="meta-llama/Llama-2-7b-chat-hf"
 # model_path="/home/users/nus/e1101650/scratch/llama2-chat-hf-cache/models--meta-llama--Llama-2-7b-chat-hf/snapshots/09bd0f49e16738cdfaa6e615203e126038736eb0"
-data_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/.json"
+data_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web-dev-refined-generated-response.json"
 metric="GLEU"
 
 save_data_path="triviaqa_datasets/answer_evaluation_results/{$metric}.json"

@@ -22,7 +22,6 @@ if __name__ == "__main__":
     elif args.task == EVALUATE_ANSWERS_QUALITY_TASK:
         print("Parsing evaluation arguments...")
         evaluation_args, _ = parse_evaluation_args()
-        print(evaluation_args)
 
     else:
         geseneration_args, _ = parse_generation_args()
@@ -153,6 +152,24 @@ if __name__ == "__main__":
             batch_size=args.batch_size, num_workers=args.num_workers,
             save_path=generation_args.save_path,
         )
+
+    # Evaluate answer for critic-refined vs zero-shot comparison
+    elif args.task == EVALUATE_ANSWERS_QUALITY_TASK:
+        token = evaluation_args.hf_token if len(evaluation_args.hf_token) else None
+        with torch.no_grad():
+            evaluate_answers_quality(
+                task=args.task,
+                dataset=args.dataset,
+                data_path=args.data_path,
+                batch_size=args.batch_size,
+                metric=evaluation_args.metric,
+                save_path=evaluation_args.save_path,
+                auth_token=token,
+                eval_model_path=evaluation_args.eval_model_path,
+                num_workers=args.num_workers,
+                save_every=evaluation_args.save_every,
+                device=args.device,
+            )
 
     else:
         raise AssertionError(f"Task {args.task} invalid!")
