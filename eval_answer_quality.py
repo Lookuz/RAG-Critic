@@ -121,16 +121,16 @@ def evaluate_answers_quality(
 
         outputs.append((q, r_gt, r_zs, r_cr, score_zs, score_cr))
 
-    scores.extend([{
-            "question": q,
-            "answer": r_gt,
-            "generated": r_zs,
-            "score_generated": score_zs,
-            "refined": r_cr,
-            "score_refined": score_cr
-        } for (q, r_gt, r_zs, r_cr,  score_zs, score_cr) in outputs])
+        scores.extend([{
+                "question": q,
+                "answer": r_gt,
+                "generated": r_zs,
+                "score_generated": score_zs,
+                "refined": r_cr,
+                "score_refined": score_cr
+            } for (q, r_gt, r_zs, r_cr,  score_zs, score_cr) in outputs])
 
-    if (i + 1) % save_every == 0:
-        # Save additional examples to new data files
-        with open(save_path, "w") as f:
-            json.dump(scores, f, indent=4)
+        if (i + 1) % save_every == 0:
+            # Save additional examples to new data files
+            with open(save_path, "w") as f:
+                json.dump(scores, f, indent=4)
