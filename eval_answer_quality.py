@@ -1,6 +1,7 @@
 import os
 import json
 from tqdm import tqdm
+from sentence_transformers import SentenceTransformer, util
 from nltk.translate.gleu_score import sentence_gleu
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from deepeval.models.base_model import DeepEvalBaseLLM
@@ -55,7 +56,17 @@ def evaluate_answers_quality(
 
     dataset = ContextualizedQADatasetForQualityEvaluation.from_dataset(dataset=dataset, data_path=data_path)
     dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
-    if metric == "GEval":
+    if metric == 'GLEU':
+        prepare_input = prepare_GLEU_input
+        score = sentence_gleu
+        model = None
+
+    elif metric == 'SentenceSimilarity':
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        prepare_input = prepare_SentenceSimilarity_input
+        score = lambda x,y: util.pytorch_cos_sim(x,y).item()
+
+    elif metric == "GEval":
         if auth_token is not None:
             model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token=auth_token)
             tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token=auth_token)
@@ -66,6 +77,18 @@ def evaluate_answers_quality(
             raise AssertionError("GEval metric requires one of hf_token or eval_model_path")
 
         mistral_7b = DeepEvalLlama2_7B(model=model, tokenizer=tokenizer, device=device)
+        coherence_metric = GEval(
+                name="Coherence",
+                criteria="Coherence - determine if the actual output is matching with the expected output.",
+                evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
+                model=mistral_7b,
+            )
+        model = None
+        prepare_input = prepare_GEval_input
+        score = coherence_metric.measure
+
+    else:
+        raise AssertionError(f"Metric {metric} not implemented")
 
     # Check for existing generated examples
     if os.path.exists(save_path):
@@ -73,53 +96,22 @@ def evaluate_answers_quality(
             scores = json.load(f)
         num_generated = len(scores)
     else:
-        scores, num_generated = [], 0
+        scores, num_generated = [], 0  
 
     for i, batch in enumerate(tqdm(dataloader)):
         if i < num_generated//batch_size:
             continue
         outputs = []
-        # Generate evaluation under correct context for wrong responses
-        if metric == 'GLEU':
-            for (q, r_gt, r_zs, r_cr) in batch:
-                # print('q', q)
-                # print('gt:', r_gt)
-                # print('r_zs', r_zs)
-                # print('r_cr', r_cr)
-                score_zs = sentence_gleu([r_gt.split()], r_zs.split())
-                score_cr = sentence_gleu([r_gt.split()], r_cr.split())
-                # print(score_zs, score_cr)
-        elif metric == 'GEval':
-            coherence_metric = GEval(
-                name="Coherence",
-                criteria="Coherence - determine if the actual output is matching with the expected output.",
-                evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
-                model=mistral_7b,
-            )
-            for (q, r_gt, r_zs, r_cr) in batch:
+        for (q, r_gt, r_zs, r_cr) in batch:
+            input_zs, input_cr = prepare_input(r_gt=r_gt, r_zs=r_zs, r_cr=r_cr, q=q, model=model)
+            score_zs = score(input_zs)
+            score_cr = score(input_cr)
 
-                test_case_zs = LLMTestCase(
-                    input=q,
-                    actual_output=r_zs,
-                    expected_output=r_gt
-                )
-
-                test_case_cr = LLMTestCase(
-                    input=q,
-                    actual_output=r_cr,
-                    expected_output=r_gt
-                )
-            score_zs = coherence_metric.measure(test_case_zs)
-            # print(coherence_metric.score)
-            # print(coherence_metric.reason)
-
-            score_cr = coherence_metric.measure(test_case_cr)
-            # print(coherence_metric.score)
-            # print(coherence_metric.reason)
-        else:
-            raise AssertionError(f"Metric {args.task} not implemented")
-
-        outputs.append((q, r_gt, r_zs, r_cr, score_zs, score_cr))
+            # print('q', q)
+            # print('gt:', r_gt)
+            # print('r_zs:', r_zs)
+            # print('r_cr:', r_cr)
+            outputs.append((q, r_gt, r_zs, r_cr, score_zs, score_cr))
 
         scores.extend([{
                 "question": q,
@@ -134,3 +126,29 @@ def evaluate_answers_quality(
             # Save additional examples to new data files
             with open(save_path, "w") as f:
                 json.dump(scores, f, indent=4)
+
+
+def prepare_GLEU_input(r_gt, r_zs, r_cr, q=None, model=None):
+    r_gt = r_gt.lower()
+    return [r_gt.split()], r_zs.lower().split(), [r_gt.split()], r_cr.lower().split()
+
+
+def prepare_GEval_input(r_gt, r_zs, r_cr, q=None, model=None):
+    test_case_zs = LLMTestCase(
+                    input=q,
+                    actual_output=r_zs,
+                    expected_output=r_gt
+                )
+    test_case_cr = LLMTestCase(
+                    input=q,
+                    actual_output=r_cr,
+                    expected_output=r_gt
+                )
+    return test_case_zs, test_case_cr
+
+
+def prepare_SentenceSimilarity_input(r_gt, r_zs, r_cr, q=None, model=None):
+    embedding_gt = model.encode(r_gt, convert_to_tensor=True)
+    embedding_zs = model.encode(r_zs, convert_to_tensor=True)
+    embedding_cr = model.encode(r_cr, convert_to_tensor=True)
+    return (embedding_gt, embedding_zs), (embedding_gt, embedding_cr)
