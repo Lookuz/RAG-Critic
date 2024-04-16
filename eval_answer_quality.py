@@ -57,14 +57,18 @@ def evaluate_answers_quality(
     dataset = ContextualizedQADatasetForQualityEvaluation.from_dataset(dataset=dataset, data_path=data_path)
     dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
     if metric == 'GLEU':
-        prepare_input = prepare_GLEU_input
-        score = sentence_gleu
         model = None
+        prepare_input = prepare_GLEU_input
+
+        def score(input_tuple):
+            return sentence_gleu(input_tuple[0], input_tuple[1])
 
     elif metric == 'SentenceSimilarity':
         model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
         prepare_input = prepare_SentenceSimilarity_input
-        score = lambda x,y: util.pytorch_cos_sim(x,y).item()
+
+        def score(input_tuple):
+            return util.pytorch_cos_sim(input_tuple[0], input_tuple[1]).item()
 
     elif metric == "GEval":
         if auth_token is not None:
@@ -96,7 +100,7 @@ def evaluate_answers_quality(
             scores = json.load(f)
         num_generated = len(scores)
     else:
-        scores, num_generated = [], 0  
+        scores, num_generated = [], 0
 
     for i, batch in enumerate(tqdm(dataloader)):
         if i < num_generated//batch_size:
@@ -130,7 +134,7 @@ def evaluate_answers_quality(
 
 def prepare_GLEU_input(r_gt, r_zs, r_cr, q=None, model=None):
     r_gt = r_gt.lower()
-    return [r_gt.split()], r_zs.lower().split(), [r_gt.split()], r_cr.lower().split()
+    return ([r_gt.split()], r_zs.lower().split()), ([r_gt.split()], r_cr.lower().split())
 
 
 def prepare_GEval_input(r_gt, r_zs, r_cr, q=None, model=None):
