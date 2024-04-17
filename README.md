@@ -42,6 +42,7 @@ python -m pip install --upgrade pip # Ensure updated to pip 24.0
 
 ```
 python -m pip install transformers==4.37.2
+python -m pip install sentence-transformers
 ```
 
 **NOTE**: `transformers=4.38.1` seems have some class name inconsistencies, suggest to avoid using this version.

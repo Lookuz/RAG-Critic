@@ -156,6 +156,9 @@ if __name__ == "__main__":
 
     # Evaluate answer for critic-refined vs zero-shot comparison
     elif args.task == EVALUATE_ANSWERS_QUALITY_TASK:
+        if not os.path.exists(os.path.dirname(evaluation_args.save_path)):
+            os.makedirs(os.path.dirname(evaluation_args.save_path))
+
         token = evaluation_args.hf_token if len(evaluation_args.hf_token) else None
         with torch.no_grad():
             evaluate_answers_quality(
