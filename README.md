@@ -79,6 +79,7 @@ Execute the following command:
 ```
 
 after adjusting the necessary paths and parameters.
+- Our experiment generated 31,834 incorrect responses (web-train-incorrect-response.json).
 
 ### 2. Generating Evaluations for Correct and Incorrect Responses
 
@@ -89,6 +90,7 @@ Execute the following command:
 ```
 
 after adjusting the necessary paths and parameters.
+- Our experiment generated 27,784 evaluations, of which 13,892 are evaluations for correct responses, the other 13,892 are evaluations for incorrect responses (web_train_evaluation_generation.json).
 
 ### 3. Finetune Critic Model to predict Evaluations
 
@@ -111,6 +113,7 @@ Execute the following command:
 ```
 
 after adjusting the necessary paths and parameters.
+- Our experiment generated 7993 responses for TriviaQA's test set (web-dev-generated-response.json).
 
 ### 5. Refine Responses on Test Dataset using Critic Model
 
@@ -121,3 +124,5 @@ Execute the following command:
 ```
 
 after adjusting the necessary paths and parameters.
+- Our experiment refined 7993 responses for TriviaQA's test set (web-dev-refined-generated-response.json).
+
