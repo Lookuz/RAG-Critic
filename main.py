@@ -10,7 +10,7 @@ from utils.prompt import get_prompt_from_task
 from triviaqa_datasets.datasets import bootstrap_dataset
 from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM, BitsAndBytesConfig
 from finetune import finetune_with_triviaqa
-from generate import generate_answers
+from generate import generate_answers, extract_answers
 from eval_answer_quality import evaluate_answers_quality
 
 if __name__ == "__main__":
@@ -25,7 +25,7 @@ if __name__ == "__main__":
         evaluation_args, _ = parse_evaluation_args()
 
     else:
-        geseneration_args, _ = parse_generation_args()
+        generation_args, _ = parse_generation_args()
 
     if args.task != EVALUATE_ANSWERS_QUALITY_TASK:
         # Load model and tokenizer
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         )
 
     # Bootstrapping
-    if args.task in [BOOTSTRAP_EVALUATION_GENERATION_TASK, BOOTSTRAP_INCORRECT_RESPONSE_TASK, GENERATE_RESPONSES_TASK]:            
+    if args.task in [BOOTSTRAP_EVALUATION_GENERATION_TASK, BOOTSTRAP_INCORRECT_RESPONSE_TASK, GENERATE_RESPONSES_TASK, POST_PROCESS_RESPONSE_TASK]:            
         # Load generation hyperparameters
         generation_config = GenerationConfig(
             temperature=generation_args.temperature,
@@ -81,6 +81,19 @@ if __name__ == "__main__":
                     batch_size=args.batch_size, num_workers=args.num_workers,
                     save_path=generation_args.save_path,
                 )
+        # Standard generation for test dataset
+        elif args.task == POST_PROCESS_RESPONSE_TASK:
+            with torch.no_grad():
+                extract_answers(
+                    args.task, prompt, 
+                    dataset=args.dataset,
+                    data_path=args.data_path,
+                    dataset_args=dataset_args,
+                    model=model, tokenizer=tokenizer,
+                    generation_config=generation_config,
+                    batch_size=args.batch_size, num_workers=args.num_workers,
+                    save_path=generation_args.save_path,
+                )                
 
         else:
             # Bootstrapping for incorrect responses / evaluations

@@ -6,6 +6,10 @@ from utils.const import *
 from utils.utils import extract_responses
 from utils.latent_semantic_analysis import truncate_text
 
+# POST_PROCESS_RESPONSE_INSTRUCTION = "Given the QUESTION, extract the keyword(s) in IMPROVED RESPONSE needed to answer the QUESTION."
+# RESPONSE_REWRITE_TEMPLATE = "{instruction}\n\n### QUESTION:\n{question}\n\n### IMPROVED RESPONSE:{improved_answer}\n\n### KEYWORDS:"
+# RESPONSE_REWRITE_DELIMITER = "### KEYWORDS:"
+
 class TaskPrompt:
     """
     An object representation of a task-specific prompt
@@ -20,10 +24,13 @@ class TaskPrompt:
             if evaluation is not None:
                 return self.template.format(
                     instruction=self.instruction, question=question, context=context, answer=answer, evaluation=evaluation)
-            else:
+            else: # Evaluation generation prompts
                 return self.template.format(instruction=self.instruction, question=question, context=context, answer=answer)
-        else:
+        else: # Standard generaton prompt
             return self.template.format(instruction=self.instruction, question=question, context=context)
+    
+    def construct_for_keyword_extraction(self, question, answer):
+        return self.template.format(instruction=self.instruction, question=question, answer=answer)
 
 def get_prompt_from_task(task):
 
@@ -47,12 +54,6 @@ def get_prompt_from_task(task):
                 EVALUATION_GENERATION_DELIMITER
             ),
         },
-        # # Finetune critic task 
-        # FINETUNE_CRITIC_TASK : TaskPrompt(
-        #     CRITIC_FEEDBACK_INSTRUCTION,
-        #     CRITIC_FEEDBACK_TEMPLATE,
-        #     CRITIC_FEEDBACK_DELIMITER
-        # ),
         # Standard generation
         GENERATE_RESPONSES_TASK : TaskPrompt(
             ANSWER_GENERATION_INSTRUCTION, 
@@ -70,6 +71,12 @@ def get_prompt_from_task(task):
             RESPONSE_REWRITE_INSTRUCTION,
             RESPONSE_REWRITE_TEMPLATE,
             RESPONSE_REWRITE_DELIMITER
+        ),
+        # Keyword extraction from refined response 
+        POST_PROCESS_RESPONSE_TASK : TaskPrompt(
+            POST_PROCESS_RESPONSE_INSTRUCTION,
+            POST_PROCESS_RESPONSE_TEMPLATE,
+            POST_PROCESS_RESPONSE_DELIMITER
         )
     }
 
@@ -154,8 +161,14 @@ def generate_responses(
         prompt : TaskPrompt, inputs, 
         generation_config : GenerationConfig
     ):
-    # Construct prompt from inputs (Q, D, [R, E])
-    inputs_prompt = [prompt.construct(*x) for x in inputs]
+
+    if prompt.delimiter == "### FORMATTED RESPONSE:":
+        # Construct prompt from inputs (Q, R)
+        inputs_prompt = [prompt.construct_for_keyword_extraction(*x) for x in inputs]
+
+    else:
+        # Construct prompt from inputs (Q, D, [R, E])
+        inputs_prompt = [prompt.construct(*x) for x in inputs]
 
     # Tokenize inputs
     tokenizer.pad_token_id = tokenizer.eos_token_id

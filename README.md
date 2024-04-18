@@ -127,3 +127,7 @@ Execute the following command:
 after adjusting the necessary paths and parameters.
 - Our experiment refined 7993 responses for TriviaQA's test set (web-dev-refined-generated-response.json).
 
+### 6. Post-processing refined responses (Optional)
+
+### 7. Evaluation
+

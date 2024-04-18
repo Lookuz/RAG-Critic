@@ -9,7 +9,7 @@ from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
 from utils.const import *
 from utils.prompt import *
-from triviaqa_datasets.datasets import ContextualizedQADatasetForGeneration, ContextualizedQADatasetForEvaluationGeneration, ContextualizedQADataLoader
+from triviaqa_datasets.datasets import ContextualizedQADatasetForGeneration, ContextualizedQADatasetForEvaluationGeneration, ContextualizedQADatasetForKeywordExtraction, ContextualizedQADataLoader
 
 def generate_answers(
     task, prompt : TaskPrompt, 
@@ -114,3 +114,59 @@ def generate_answers(
             # Save additional examples to new data files
             with open(save_path, "w") as f:
                 json.dump(generated, f, indent=4)
+
+def extract_answers(
+    task, prompt : TaskPrompt, 
+    dataset, data_path, dataset_args : dict,
+    generation_config,
+    batch_size,
+    save_path,
+    num_workers=1,
+    save_every=1,
+    model=None, tokenizer=None, 
+):
+    # Build dataset for generation
+    # [Q, R_zs, R_cr]
+    dataset = ContextualizedQADatasetForKeywordExtraction.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
+    dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+
+    # Check for existing generated examples
+    if os.path.exists(save_path):
+        with open(save_path, "r") as f:
+            bootstrapped_examples = json.load(f)
+        num_generated = len(bootstrapped_examples)
+    else:
+        bootstrapped_examples, num_generated = [], 0
+
+    keywords = []
+    for i, batch in enumerate(tqdm(dataloader)):
+        if i < num_generated//batch_size:
+            continue
+
+        # Extract keywords from zero_shot responses
+        inputs_keywords_zero_shot = [(q, r_zs) for q, r_zs, _ in batch]
+        # outputs_zs: q,r_zs,r_zs_keywords
+        outputs_zs = generate_responses(
+            model, tokenizer, prompt, inputs_keywords_zero_shot, generation_config
+        )
+
+        # Extract keywords from critic-refined responses
+        inputs_keywords_critic_refined = [(q, r_cr) for q, _, r_cr in batch]
+        
+        # outputs_cr: q,r_cr,keywords_cr
+        outputs_cr = generate_responses(
+            model, tokenizer, prompt, inputs_keywords_critic_refined, generation_config
+        )
+
+        keywords.extend([{
+            "question" : q, "generated" : r_zs, "generated_keywords" : r_zs_keywords
+        } for (q, r_zs, r_zs_keywords) in outputs_zs])
+
+        keywords.extend([{
+            "question" : q, "refined" : r_cr, "refined_keywords" : r_cr_keywords
+        } for (q, r_cr, r_cr_keywords) in outputs_cr])        
+
+        if (i + 1) % save_every == 0:
+            # Save additional examples to new data files
+            with open(save_path, "w") as f:
+                json.dump(keywords, f, indent=4)

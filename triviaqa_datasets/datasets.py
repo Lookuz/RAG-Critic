@@ -361,6 +361,45 @@ class ContextualizedQADatasetForQualityEvaluation(Dataset):
         
         return cls(data=examples)
 
+class ContextualizedQADatasetForKeywordExtraction(Dataset):
+    """
+    Dataset for text in the form of [Q, R_zs, R_cr] , containing the question, the zero-shot response and the critic-refined response.
+    Format of data: Each entry should be in the form {"question" : ..., "generated" : ..., "refined" : ...}
+    """
+    def __init__(
+        self, data
+    ) -> None:
+        super().__init__()
+
+        self.data = data  
+
+    def __getitem__(self, index):
+        return self.data[index]
+    
+    def __len__(self):
+        return len(self.data)
+    
+    @classmethod
+    def from_dataset(cls, dataset, data_path, **kwargs):
+        return {
+            "triviaqa" : cls.from_trivia_qa
+        }[dataset](data_path, **kwargs)
+    
+    @classmethod
+    def from_trivia_qa(cls, data_path, *args, **kwargs):
+        """
+        Creates a ContextualizedQADatasetForKeywordExtraction for the TriviaQA dataset, using the path to the data provided.
+        """
+        with open(data_path, "r") as f:
+            data = json.load(f)
+
+        examples = [
+            (x["question"], x["generated"], x["refined"]) for x in data
+        ]
+        
+        return cls(data=examples)
+
+
 class ContextualizedQADataLoader(DataLoader):
     def __init__(self, 
         dataset: Dataset, 

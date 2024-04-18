@@ -36,7 +36,8 @@ def parse_args():
             FINETUNE_CRITIC_TASK,
             REFINE_RESPONSE_WITH_CRITIC_TASK,
             GENERATE_RESPONSES_TASK,
-            EVALUATE_ANSWERS_QUALITY_TASK
+            EVALUATE_ANSWERS_QUALITY_TASK,
+            POST_PROCESS_RESPONSE_TASK
         ]
     )
 

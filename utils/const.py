@@ -6,6 +6,7 @@ REFINE_RESPONSE_WITH_CRITIC_TASK = "refine_response_with_critic"
 GENERATE_RESPONSES_TASK = "generate_answer"
 RESPONSE_REWRITE_TASK = "response_rewrite"
 EVALUATE_ANSWERS_QUALITY_TASK = "evaluate_answers_quality"
+POST_PROCESS_RESPONSE_TASK = "post-process"
 
 # Incorrect responses generation prompts
 INCORRECT_RESPONSE_INSTRUCTION = "Given the QUESTION, CONTEXT and CORRECT RESPONSE, write an INCORRECT RESPONSE that is different from the CORRECT RESPONSE. The INCORRECT RESPONSE must be false but related to the provided CONTEXT and is a possible answer to the QUESTION. Make sure you only return the INCORRECT RESPONSE and nothing more."
@@ -43,6 +44,30 @@ ANSWER_GENERATION_TEMPLATE = "{instruction}\n\n### CONTEXT\n{context}\n\n### QUE
 ANSWER_GENERATION_DELIMITER = "### RESPONSE:"
 
 # Response rewrite prompt using feedback critic
-RESPONSE_REWRITE_INSTRUCTION = "Using the EVALUATION given, write an improved RESPONSE to the QUESTION under the CONTEXT provided"
+RESPONSE_REWRITE_INSTRUCTION = "Using the EVALUATION given, write an IMPROVED RESPONSE to the QUESTION under the CONTEXT provided"
 RESPONSE_REWRITE_TEMPLATE = "{instruction}\n\n### CONTEXT\n{context}\n\n### QUESTION:\n{question}\n\n### RESPONSE:{answer}\n\n### EVALUATION:{evaluation}\n\n### IMPROVED RESPONSE:"
 RESPONSE_REWRITE_DELIMITER = "### IMPROVED RESPONSE:"
+
+# Post-process response
+POST_PROCESS_RESPONSE_INSTRUCTION = '''
+I have provided 5 examples of TriviaQA question-answer pairs below.
+Examples:
+### QUESTION: "Where in England was Dame Judi Dench born?",
+### RESPONSE: "York",
+
+### QUESTION": "From which country did Angola achieve independence in 1975?",
+### RESPONSE: "Portugal",
+
+### QUESTION": "Which city does David Soul come from?",
+### RESPONSE: "Chicago",
+
+### QUESTION": "Who won Super Bowl XX?",
+### RESPONSE: "Chicago Bears",
+
+### QUESTION": "Which was the first European country to abolish capital punishment?",
+### RESPONSE: "Norway",
+
+Follow the style of the RESPONSE in the examples to format the RESPONSE below. The formatted response should be short and concise. If the response is already short, return as it is.'''
+
+POST_PROCESS_RESPONSE_TEMPLATE = "{instruction}\n\n### QUESTION:\n{question}\n\n### RESPONSE:{answer}\n\n### FORMATTED RESPONSE:"
+POST_PROCESS_RESPONSE_DELIMITER = "### FORMATTED RESPONSE:"
