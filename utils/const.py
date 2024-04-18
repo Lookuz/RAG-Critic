@@ -50,7 +50,7 @@ RESPONSE_REWRITE_DELIMITER = "### IMPROVED RESPONSE:"
 
 # Post-process response
 POST_PROCESS_RESPONSE_INSTRUCTION = '''
-I have provided 5 examples of TriviaQA question-answer pairs below.
+I have provided 10 examples of TriviaQA question-answer pairs below.
 Examples:
 ### QUESTION: "Where in England was Dame Judi Dench born?",
 ### RESPONSE: "York",
@@ -67,7 +67,22 @@ Examples:
 ### QUESTION": "Which was the first European country to abolish capital punishment?",
 ### RESPONSE: "Norway",
 
-Follow the style of the RESPONSE in the examples to format the RESPONSE below. The formatted response should be short and concise. If the response is already short, return as it is.'''
+### QUESTION": "In which country did he widespread use of ISDN begin in 1988?",
+### RESPONSE": "Japan",
+
+### QUESTION": "What is Bruce Willis' real first name?",
+### RESPONSE": "Walter",
+
+### QUESTION": "Which William wrote the novel Lord Of The Flies?",
+### RESPONSE": "Golding",
+
+### QUESTION": "How is Joan Molinsky better known?",
+### RESPONSE": "Joan Rivers",
+
+### QUESTION": "In which branch of the arts is Patricia Neary famous?",
+### RESPONSE": "Ballet",
+
+Follow the style of the RESPONSE in the examples above to format the RESPONSE below. '''
 
 POST_PROCESS_RESPONSE_TEMPLATE = "{instruction}\n\n### QUESTION:\n{question}\n\n### RESPONSE:{answer}\n\n### FORMATTED RESPONSE:"
 POST_PROCESS_RESPONSE_DELIMITER = "### FORMATTED RESPONSE:"

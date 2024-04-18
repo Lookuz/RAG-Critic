@@ -3,7 +3,7 @@ device="cuda"
 batch_size=4
 num_workers=8
 # model_path="/home/users/nus/e1101650/scratch/llama2-chat-hf-cache/models--meta-llama--Llama-2-7b-chat-hf/snapshots/09bd0f49e16738cdfaa6e615203e126038736eb0"
-model_path="/home/yufeng/RAG-Critic-heiman2/RAG-Critic/models--meta-llama--Llama-2-7b-chat-hf/snapshots/92011f62d7604e261f748ec0cfe6329f31193e33"
+model_path="/home/yufeng/RAG-Critic-heiman/RAG-Critic/models--meta-llama--Llama-2-7b-chat-hf/snapshots/92011f62d7604e261f748ec0cfe6329f31193e33"
 
 # Dataset parameters
 dataset="triviaqa"
