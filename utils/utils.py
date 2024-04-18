@@ -1,9 +1,10 @@
 import argparse
 import itertools
 import random
+import json
 from datasets import Dataset
 import matplotlib.pyplot as plt
-
+import re
 from utils.const import *
 
 # Main arguments
@@ -145,6 +146,43 @@ def load_latest_checkpoint(checkpoint_dir):
     # Get the latest checkpoint folder
     latest_checkpoint_folder = sorted_checkpoint_folders[-1]
     return latest_checkpoint_folder
+
+def post_process(data_path, ground_truth_path):
+    with open(data_path,"r") as f:
+        post_processed = json.load(f)
+    with open(ground_truth_path,"r") as f:
+        ground_truth = json.load(f)
+    post_processed_list = []
+    print("Processing...")
+
+    count=0
+    for i in range(0,len(post_processed),8): #
+        for j in range(i,i+4):
+            post_processed_sample ={}
+            post_processed_sample["question"] = post_processed[j]['question']
+            post_processed_sample["answer"] = ground_truth[count]['answer']
+            post_processed_sample["generated"] = post_processed[j]['generated_keywords']
+            post_processed_sample["refined"] = post_processed[j+4]['refined_keywords']
+            post_processed_list.append(post_processed_sample)
+            count+=1
+
+    '''Further postprocess: 
+    1) Remove the (x words)
+    2) Extract the RESPONSE section
+    3) Filter away those with more than 8 words in critic-refined responses.
+    '''
+    
+    for item in post_processed_list:
+        match = re.search(r'\(\d+ words\)', item['refined'])
+        if match:
+            item['refined'] = item['refined'].replace(match.group(0), '').strip()
+        
+        if '### RESPONSE:' in item['refined']:
+            item['refined'] = item['refined'].split("### RESPONSE:")[1]
+
+    final_post_processed_list = [item for item in post_processed_list if len(item["refined"].split())<=7]
+    return final_post_processed_list
+
 
 def plot_training_curve(data):
     all_losses = []

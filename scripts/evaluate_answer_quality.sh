@@ -6,7 +6,7 @@ num_workers=8
 # Evaluation parameters
 dataset="triviaqa"
 model_path="meta-llama/Llama-2-7b-chat-hf"
-data_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web-dev-refined-generated-response.json"
+data_path="triviaqa_datasets/TriviaQA/rc/qa/bootstrap/web-dev-post-processed-response.json"
 metric="SentenceSimilarity"
 
 save_data_path="triviaqa_datasets/answer_evaluation_results/$metric.json"

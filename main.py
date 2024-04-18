@@ -4,6 +4,7 @@ import torch
 # from FastChat.fastchat.model.model_adapter import load_model
 from transformers import GenerationConfig
 
+import numpy as np
 from utils.utils import *
 from utils.const import *
 from utils.prompt import get_prompt_from_task
@@ -171,13 +172,19 @@ if __name__ == "__main__":
     elif args.task == EVALUATE_ANSWERS_QUALITY_TASK:
         if not os.path.exists(os.path.dirname(evaluation_args.save_path)):
             os.makedirs(os.path.dirname(evaluation_args.save_path))
+        
+        ground_truth_path = os.path.join(os.path.dirname(args.data_path),"web-dev-refined-generated-response.json")
+        final_post_processed_list = post_process(args.data_path,ground_truth_path)
+        with open(os.path.join(os.path.dirname(args.data_path),"web-dev-final-post-processed-response.json"), 'w') as file:
+            json.dump(final_post_processed_list, file, indent=4)
 
         token = evaluation_args.hf_token if len(evaluation_args.hf_token) else None
+
         with torch.no_grad():
             evaluate_answers_quality(
                 task=args.task,
                 dataset=args.dataset,
-                data_path=args.data_path,
+                data_path=os.path.join(os.path.dirname(args.data_path),"web-dev-final-post-processed-response.json"),
                 batch_size=args.batch_size,
                 metric=evaluation_args.metric,
                 save_path=evaluation_args.save_path,
@@ -187,6 +194,19 @@ if __name__ == "__main__":
                 save_every=evaluation_args.save_every,
                 device=args.device,
             )
+        with open(evaluation_args.save_path,"r") as f:
+            scores = json.load(f)
+        score_generated_list = []
+        score_refined_list = []
+        for each in scores:
+            score_generated_list.append(each["score_generated"])
+            score_refined_list.append(each["score_refined"])
+        score_generated_list_np = np.asarray(score_generated_list)
+        score_refined_list_np = np.asarray(score_refined_list)
+        print(f"Average cos-sim scores for zero-shot responses: {np.mean(score_generated_list_np)}")
+        print(f"Average cos-sim scores for critic-refined responses: {np.mean(score_refined_list_np)}")
+
+        
 
     else:
         raise AssertionError(f"Task {args.task} invalid!")

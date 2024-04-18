@@ -53,7 +53,7 @@ def evaluate_answers_quality(
     device=None,
     *args, **kwargs
 ):
-
+    print("Calculating similarity scores...")
     dataset = ContextualizedQADatasetForQualityEvaluation.from_dataset(dataset=dataset, data_path=data_path)
     dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
     if metric == 'GLEU':
