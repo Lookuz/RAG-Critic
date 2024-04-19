@@ -1,4 +1,3 @@
-import os
 import json
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, util
@@ -94,27 +93,15 @@ def evaluate_answers_quality(
     else:
         raise AssertionError(f"Metric {metric} not implemented")
 
-    # Check for existing generated examples
-    if os.path.exists(save_path):
-        with open(save_path, "r") as f:
-            scores = json.load(f)
-        num_generated = len(scores)
-    else:
-        scores, num_generated = [], 0
+    scores = []
 
     for i, batch in enumerate(tqdm(dataloader)):
-        if i < num_generated//batch_size:
-            continue
         outputs = []
         for (q, r_gt, r_zs, r_cr) in batch:
             input_zs, input_cr = prepare_input(r_gt=r_gt, r_zs=r_zs, r_cr=r_cr, q=q, model=model)
             score_zs = score(input_zs)
             score_cr = score(input_cr)
 
-            # print('q', q)
-            # print('gt:', r_gt)
-            # print('r_zs:', r_zs)
-            # print('r_cr:', r_cr)
             outputs.append((q, r_gt, r_zs, r_cr, score_zs, score_cr))
 
         scores.extend([{
