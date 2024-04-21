@@ -1,6 +1,5 @@
 import os
 import json
-from typing import Union
 
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
@@ -348,8 +347,8 @@ class ContextualizedQADatasetForQualityEvaluation(Dataset):
     @classmethod
     def from_trivia_qa(cls, data_path, *args, **kwargs):
         """
-        Creates a ContextualizedQADatasetForEvaluationGeneration for the TriviaQA dataset, using the path to the data provided.
-        data_path should be a path to the json file containing the respective split for the TriviaQA dataset.
+        Creates a ContextualizedQADatasetForEvaluationGeneration for the TriviaQA dataset,
+        using the path of a json file with the data provided
         """
         with open(data_path, "r") as f:
             data = json.load(f)
@@ -406,8 +405,4 @@ class ContextualizedQADataLoader(DataLoader):
         shuffle: bool = False, 
         num_workers: int = 0):
         
-        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=ContextualizedQADataLoader.collate_fn)
-    
-    @classmethod
-    def collate_fn(cls, batch):
-        return batch
+        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)

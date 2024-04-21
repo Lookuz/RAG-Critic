@@ -102,7 +102,5 @@ def finetune_with_triviaqa(model, tokenizer, dataset, data_path, output_data_dir
 
 # Maybe can shift this to utils/const.py
 def formatting_prompts_func(sample):
-    return f"""
-{sample["qrd"]}
-{sample["e"]}
-"""
+    return (f"{sample["qrd"]}
+            {sample["e"]}")

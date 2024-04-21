@@ -104,7 +104,7 @@ def generate_answers(
             outputs_critic = generate_responses(
                 critic_model, critic_tokenizer, critic_prompt, inputs_generated_response, generation_config)
                 
-            # # Re-generate with critic model feedback - (Q, D, R, E)
+            # Re-generate with critic model feedback - (Q, D, R, E)
             outputs = generate_responses(model, tokenizer, rewrite_prompt, outputs_critic, generation_config)
 
             generated.extend([{
@@ -112,7 +112,7 @@ def generate_answers(
             } for (q, d, r, e, r_), a in zip(outputs, answers)])
 
         else:
-            raise AssertionError(f"Task {args.task} invalid!")
+            raise AssertionError(f"Task {task} invalid!")
 
 
         if (i + 1) % save_every == 0:
@@ -121,7 +121,7 @@ def generate_answers(
                 json.dump(generated, f, indent=4)
 
 def extract_answers(
-    task, prompt : TaskPrompt, 
+    prompt : TaskPrompt, 
     dataset, data_path, dataset_args : dict,
     generation_config,
     batch_size,

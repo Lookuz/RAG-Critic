@@ -1,6 +1,4 @@
 import argparse
-import itertools
-import random
 import json
 from datasets import Dataset
 import matplotlib.pyplot as plt
@@ -126,11 +124,6 @@ def parse_evaluation_args():
 def extract_responses(outputs, delimiter):
     return [x.split(delimiter)[1].strip() for x in outputs]
 
-def get_derangement(sequence):
-    valid_permutations = set([s for s in itertools.permutations(sequence) if not any([a == b for a, b in zip(s, sequence)])])
-
-    return random.choice(list(valid_permutations))
-
 def convert_to_hf_dataset(dataset):
     def gen():
         for item in dataset:
@@ -139,13 +132,6 @@ def convert_to_hf_dataset(dataset):
     # Create a Dataset object from the generator function
     dset = Dataset.from_generator(gen)
     return dset
-
-def load_latest_checkpoint(checkpoint_dir):
-    checkpoint_folders = [folder for folder in os.listdir(checkpoint_dir)]
-    sorted_checkpoint_folders = sorted(checkpoint_folders, key=lambda x: int(x.split("checkpoint")[1]))
-    # Get the latest checkpoint folder
-    latest_checkpoint_folder = sorted_checkpoint_folders[-1]
-    return latest_checkpoint_folder
 
 def post_process(data_path, ground_truth_path):
     with open(data_path,"r") as f:

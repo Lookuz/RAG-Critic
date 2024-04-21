@@ -82,11 +82,11 @@ if __name__ == "__main__":
                     batch_size=args.batch_size, num_workers=args.num_workers,
                     save_path=generation_args.save_path,
                 )
-        # Standard generation for test dataset
+
         elif args.task == POST_PROCESS_RESPONSE_TASK:
             with torch.no_grad():
                 extract_answers(
-                    args.task, prompt, 
+                    prompt, 
                     dataset=args.dataset,
                     data_path=args.data_path,
                     dataset_args=dataset_args,
@@ -173,13 +173,14 @@ if __name__ == "__main__":
         if not os.path.exists(os.path.dirname(evaluation_args.save_path)):
             os.makedirs(os.path.dirname(evaluation_args.save_path))
         
+        # Process the model outputs (both zero-shot and critic refined)
         ground_truth_path = os.path.join(os.path.dirname(args.data_path),"web-dev-refined-generated-response.json")
         final_post_processed_list = post_process(args.data_path,ground_truth_path)
         with open(os.path.join(os.path.dirname(args.data_path),"web-dev-final-post-processed-response.json"), 'w') as file:
             json.dump(final_post_processed_list, file, indent=4)
 
         token = evaluation_args.hf_token if len(evaluation_args.hf_token) else None
-
+        
         with torch.no_grad():
             evaluate_answers_quality(
                 task=args.task,
@@ -194,6 +195,7 @@ if __name__ == "__main__":
                 save_every=evaluation_args.save_every,
                 device=args.device,
             )
+
         with open(evaluation_args.save_path,"r") as f:
             scores = json.load(f)
         score_generated_list = []
@@ -203,10 +205,8 @@ if __name__ == "__main__":
             score_refined_list.append(each["score_refined"])
         score_generated_list_np = np.asarray(score_generated_list)
         score_refined_list_np = np.asarray(score_refined_list)
-        print(f"Average cos-sim scores for zero-shot responses: {np.mean(score_generated_list_np)}")
-        print(f"Average cos-sim scores for critic-refined responses: {np.mean(score_refined_list_np)}")
-
-        
+        print(f"Average {evaluation_args.metric} for zero-shot responses: {np.mean(score_generated_list_np)}")
+        print(f"Average{evaluation_args.metric} for critic-refined responses: {np.mean(score_refined_list_np)}")
 
     else:
         raise AssertionError(f"Task {args.task} invalid!")

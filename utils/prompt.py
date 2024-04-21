@@ -6,10 +6,6 @@ from utils.const import *
 from utils.utils import extract_responses
 from utils.latent_semantic_analysis import truncate_text
 
-# POST_PROCESS_RESPONSE_INSTRUCTION = "Given the QUESTION, extract the keyword(s) in IMPROVED RESPONSE needed to answer the QUESTION."
-# RESPONSE_REWRITE_TEMPLATE = "{instruction}\n\n### QUESTION:\n{question}\n\n### IMPROVED RESPONSE:{improved_answer}\n\n### KEYWORDS:"
-# RESPONSE_REWRITE_DELIMITER = "### KEYWORDS:"
-
 class TaskPrompt:
     """
     An object representation of a task-specific prompt
@@ -81,23 +77,6 @@ def get_prompt_from_task(task):
     }
 
     return task_prompts[task]
-
-def construct_prompt_for_incorrect_response(question, context, response):
-    """
-    Constructs the prompt to the model to generate a false response, under the provided question and context,
-    as well as the correct response
-    """
-    return INCORRECT_RESPONSE_TEMPLATE.format(INCORRECT_RESPONSE_INSTRUCTION, context, question, response)
-
-def construct_prompt_for_summarization(evidence=None):
-    """
-    Constructs the prompt for asking a model to summarize a piece of document or chunk
-    """
-    prompt = SUMMARIZE_CONTEXT_TEMPLATE.format(
-        instruction=SUMMARIZE_CONTEXT_INSTRUCTION, text=evidence
-    ) if evidence is not None else SUMMARIZE_CONTEXT_TEMPLATE.format(SUMMARIZE_CONTEXT_INSTRUCTION)
-
-    return prompt
 
 def summarize_document(summarizer, documents, tokenizer, ideal_number_tokens):
     # Load each evidence document
