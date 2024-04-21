@@ -9,7 +9,12 @@ from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
 from utils.const import *
 from utils.prompt import *
-from triviaqa_datasets.datasets import ContextualizedQADatasetForGeneration, ContextualizedQADatasetForEvaluationGeneration, ContextualizedQADatasetForKeywordExtraction, ContextualizedQADataLoader
+from triviaqa_datasets.datasets import (
+    ContextualizedQADatasetForGeneration,
+    ContextualizedQADatasetForEvaluationGeneration,
+    ContextualizedQADatasetForKeywordExtraction,
+    ContextualizedQADataLoader,
+)
 
 def generate_answers(
     task, prompt : TaskPrompt, 

@@ -11,7 +11,6 @@ from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
 from utils.prompt import *
 from utils.const import *
-from utils.utils import get_derangement
 
 def bootstrap_dataset(
     task,
