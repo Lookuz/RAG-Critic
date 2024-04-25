@@ -65,6 +65,11 @@ python -m pip install sumy
 python -m pip install datasets peft bitsandbytes trl
 ```
 
+6. Install deepeval if using GEval for scoring zero-shot and critic-refined answers (optional).
+```
+python -m pip install deepeval
+```
+
 ## Downloading the datasets
 
 The primary dataset used in the repository is TriviaQA, which can be downloaded from the following link: https://nlp.cs.washington.edu/triviaqa/. Make sure to place the downloaded files for both RC and unfiltered under `triviaqa_datasets/TriviaQA/rc/` and `triviaqa_datasets/TriviaQA/unfiltered/` respectively.

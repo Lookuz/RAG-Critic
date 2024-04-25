@@ -3,9 +3,9 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, util
 from nltk.translate.gleu_score import sentence_gleu
 from transformers import AutoModelForCausalLM, AutoTokenizer
-# from deepeval.models.base_model import DeepEvalBaseLLM
-# from deepeval.metrics import GEval
-# from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+from deepeval.models.base_model import DeepEvalBaseLLM
+from deepeval.metrics import GEval
+from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from triviaqa_datasets.datasets import ContextualizedQADatasetForQualityEvaluation, ContextualizedQADataLoader
 import nltk
@@ -14,34 +14,34 @@ nltk.download('stopwords')
 nltk.download('punkt')
 
 
-# class DeepEvalLlama2_7B(DeepEvalBaseLLM):
-#     def __init__(
-#         self,
-#         model,
-#         tokenizer,
-#         device
-#     ):
-#         self.model = model
-#         self.tokenizer = tokenizer
-#         self.device = device
+class DeepEvalLlama2_7B(DeepEvalBaseLLM):
+    def __init__(
+        self,
+        model,
+        tokenizer,
+        device
+    ):
+        self.model = model
+        self.tokenizer = tokenizer
+        self.device = device
 
-#     def load_model(self):
-#         return self.model
+    def load_model(self):
+        return self.model
 
-#     def generate(self, prompt: str) -> str:
-#         model = self.load_model()
+    def generate(self, prompt: str) -> str:
+        model = self.load_model()
 
-#         model_inputs = self.tokenizer([prompt], return_tensors="pt").to(self.device)
-#         model.to(self.device)
+        model_inputs = self.tokenizer([prompt], return_tensors="pt").to(self.device)
+        model.to(self.device)
 
-#         generated_ids = model.generate(**model_inputs, max_new_tokens=100, do_sample=True)
-#         return self.tokenizer.batch_decode(generated_ids)[0]
+        generated_ids = model.generate(**model_inputs, max_new_tokens=100, do_sample=True)
+        return self.tokenizer.batch_decode(generated_ids)[0]
 
-#     async def a_generate(self, prompt: str) -> str:
-#         return self.generate(prompt)
+    async def a_generate(self, prompt: str) -> str:
+        return self.generate(prompt)
 
-#     def get_model_name(self):
-#         return "Llama 2 7B"
+    def get_model_name(self):
+        return "Llama 2 7B"
 
 
 # Given a question, ground truth answer, evaluate the relevance of the zero-shot and critic-refined generated responses
@@ -80,26 +80,26 @@ def evaluate_answers_quality(
         def score(input_tuple):
             return util.pytorch_cos_sim(input_tuple[0], input_tuple[1]).item()
 
-    # elif metric == "GEval":
-    #     if auth_token is not None:
-    #         model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token=auth_token)
-    #         tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token=auth_token)
-    #     elif "evel_model_path" in kwargs:
-    #         model = AutoModelForCausalLM.from_pretrained(kwargs["eval_model_path"])
-    #         tokenizer = AutoTokenizer.from_pretrained(kwargs["eval_model_path"])
-    #     else:
-    #         raise AssertionError("GEval metric requires one of hf_token or eval_model_path")
+    elif metric == "GEval":
+        if auth_token is not None:
+            model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token=auth_token)
+            tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token=auth_token)
+        elif "evel_model_path" in kwargs:
+            model = AutoModelForCausalLM.from_pretrained(kwargs["eval_model_path"])
+            tokenizer = AutoTokenizer.from_pretrained(kwargs["eval_model_path"])
+        else:
+            raise AssertionError("GEval metric requires one of hf_token or eval_model_path")
 
-    #     mistral_7b = DeepEvalLlama2_7B(model=model, tokenizer=tokenizer, device=device)
-    #     coherence_metric = GEval(
-    #             name="Coherence",
-    #             criteria="Coherence - determine if the actual output is matching with the expected output.",
-    #             evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
-    #             model=mistral_7b,
-    #         )
-    #     model = None
-    #     prepare_input = prepare_GEval_input
-    #     score = coherence_metric.measure
+        mistral_7b = DeepEvalLlama2_7B(model=model, tokenizer=tokenizer, device=device)
+        coherence_metric = GEval(
+                name="Coherence",
+                criteria="Coherence - determine if the actual output is matching with the expected output.",
+                evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
+                model=mistral_7b,
+            )
+        model = None
+        prepare_input = prepare_GEval_input
+        score = coherence_metric.measure
 
     else:
         raise AssertionError(f"Metric {metric} not implemented")
@@ -144,18 +144,18 @@ def prepare_F1_input(r_gt, r_zs, r_cr, q=None, model=None):
     return (r_gt, r_zs), (r_gt, r_cr)
 
 
-# def prepare_GEval_input(r_gt, r_zs, r_cr, q=None, model=None):
-#     test_case_zs = LLMTestCase(
-#                     input=q,
-#                     actual_output=r_zs,
-#                     expected_output=r_gt
-#                 )
-#     test_case_cr = LLMTestCase(
-#                     input=q,
-#                     actual_output=r_cr,
-#                     expected_output=r_gt
-#                 )
-#     return test_case_zs, test_case_cr
+def prepare_GEval_input(r_gt, r_zs, r_cr, q=None, model=None):
+    test_case_zs = LLMTestCase(
+                    input=q,
+                    actual_output=r_zs,
+                    expected_output=r_gt
+                )
+    test_case_cr = LLMTestCase(
+                    input=q,
+                    actual_output=r_cr,
+                    expected_output=r_gt
+                )
+    return test_case_zs, test_case_cr
 
 
 def prepare_SentenceSimilarity_input(r_gt, r_zs, r_cr, q=None, model=None):
