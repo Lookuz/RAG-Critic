@@ -1,15 +1,13 @@
 import os 
 import torch
-
-# from FastChat.fastchat.model.model_adapter import load_model
-from transformers import GenerationConfig
-
 import numpy as np
+from transformers import GenerationConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+
 from utils.utils import *
 from utils.const import *
 from utils.prompt import get_prompt_from_task
 from triviaqa_datasets.datasets import bootstrap_dataset
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from finetune import finetune_with_triviaqa
 from generate import generate_answers, extract_answers
 from eval_answer_quality import evaluate_answers_quality

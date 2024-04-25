@@ -1,8 +1,7 @@
 import os
 import json
-
-from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+from torch.utils.data import Dataset, DataLoader
 from transformers import pipeline, DPRReader, DPRReaderTokenizer
 from langchain.prompts import PromptTemplate
 from langchain.chains.summarize import load_summarize_chain
@@ -21,29 +20,27 @@ def bootstrap_dataset(
     save_path,
     num_workers=1,
     save_every=1,
-    *args,
-    **kwargs
 ):
     if task == BOOTSTRAP_INCORRECT_RESPONSE_TASK:
         bootstrap_incorrect_responses(
             prompt, dataset=dataset, data_path=data_path, dataset_args=dataset_args,
             model=model, tokenizer=tokenizer, generation_config=generation_config, 
             batch_size=batch_size, save_path=save_path, num_workers=num_workers, 
-            save_every=save_every, *args, **kwargs
+            save_every=save_every
         )
     elif task == BOOTSTRAP_EVALUATION_GENERATION_TASK:
         bootstrap_evaluation_generation(
             prompt, dataset=dataset, data_path=data_path, dataset_args=dataset_args,
             model=model, tokenizer=tokenizer, generation_config=generation_config, 
             batch_size=batch_size, save_path=save_path, num_workers=num_workers, 
-            save_every=save_every, *args, **kwargs
+            save_every=save_every
         )
     elif task == GENERATE_RESPONSES_TASK:
         bootstrap_incorrect_responses(
             prompt, dataset=dataset, data_path=data_path, dataset_args=dataset_args,
             model=model, tokenizer=tokenizer, generation_config=generation_config, 
             batch_size=batch_size, save_path=save_path, num_workers=num_workers, 
-            save_every=save_every, *args, **kwargs
+            save_every=save_every
         )
     else:
         raise AssertionError("Provided task is not valid!")
@@ -59,8 +56,6 @@ def bootstrap_incorrect_responses(
     save_every=1,
     mode="snippet",
     ideal_number_tokens=2000,
-    *args,
-    **kwargs
 ):
     # Build dataset from original examples
     dataset = ContextualizedQADatasetForGeneration.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
@@ -139,15 +134,10 @@ def bootstrap_evaluation_generation(
     save_path,
     num_workers=1,
     save_every=1,
-    *args,
-    **kwargs
 ):
     # Build dataset from original examples
     dataset = ContextualizedQADatasetForEvaluationGeneration.from_dataset(dataset=dataset, data_path=data_path, **dataset_args)
     dataloader = ContextualizedQADataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
-
-    tokenizer_reader = DPRReaderTokenizer.from_pretrained("facebook/dpr-reader-multiset-base")
-    model_reader = DPRReader.from_pretrained("facebook/dpr-reader-multiset-base").to(model.device)
 
     # Check for existing generated examples
     if os.path.exists(save_path):
@@ -227,7 +217,7 @@ class ContextualizedQADatasetForCriticFinetuning(Dataset):
         
         return cls(data=examples)
 
-# Bootstrapping datasets
+# Dataset for answer generation : zero-shot if model is not finetuned, and critic-refined if using the finetuned one
 class ContextualizedQADatasetForGeneration(Dataset):
     """
     Dataset for text in the form of [Q, R, D] triples, containing the question, response and context respectively.
@@ -279,6 +269,7 @@ class ContextualizedQADatasetForGeneration(Dataset):
 
         return cls(data=examples)
 
+# Dataset for generating the zero-shot answer evaluation by the teacher model
 class ContextualizedQADatasetForEvaluationGeneration(Dataset):
     """
     Dataset for text in the form of [Q, R, D, R'] triples, containing the question, response, context and generated (false) responses respectively.
@@ -318,7 +309,7 @@ class ContextualizedQADatasetForEvaluationGeneration(Dataset):
         
         return cls(data=examples)
 
-# Answers evaluation dataset: zero-shot vs critic-refined
+# Answers quality evaluation dataset: zero-shot vs critic-refined
 class ContextualizedQADatasetForQualityEvaluation(Dataset):
     """
     Dataset for text in the form of [Q, R, R_zs, R_cr] triples, containing the question, the ground-truth answer,
@@ -359,6 +350,7 @@ class ContextualizedQADatasetForQualityEvaluation(Dataset):
         
         return cls(data=examples)
 
+# Keyword extraction is the LLM output post-processing applied before answer quality evaluation
 class ContextualizedQADatasetForKeywordExtraction(Dataset):
     """
     Dataset for text in the form of [Q, R_zs, R_cr] , containing the question, the zero-shot response and the critic-refined response.
@@ -398,6 +390,7 @@ class ContextualizedQADatasetForKeywordExtraction(Dataset):
         return cls(data=examples)
 
 
+# General dataloader class
 class ContextualizedQADataLoader(DataLoader):
     def __init__(self, 
         dataset: Dataset, 

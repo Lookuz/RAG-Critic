@@ -1,14 +1,14 @@
 import json
+import nltk
 from tqdm import tqdm
-from sentence_transformers import SentenceTransformer, util
-from nltk.translate.gleu_score import sentence_gleu
-from transformers import AutoModelForCausalLM, AutoTokenizer
 from deepeval.models.base_model import DeepEvalBaseLLM
 from deepeval.metrics import GEval
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+from nltk.translate.gleu_score import sentence_gleu
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from sentence_transformers import SentenceTransformer, util
 
 from triviaqa_datasets.datasets import ContextualizedQADatasetForQualityEvaluation, ContextualizedQADataLoader
-import nltk
 
 nltk.download('stopwords')
 nltk.download('punkt')

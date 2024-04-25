@@ -1,6 +1,5 @@
 import os
 import json
-
 from tqdm import tqdm
 from transformers import pipeline, DPRReader, DPRReaderTokenizer
 from langchain.prompts import PromptTemplate
